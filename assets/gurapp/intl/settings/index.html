@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" 
+          content="width=device-width, initial-scale=1.0, 
+                   maximum-scale=1.0, user-scalable=no" />
+    <title>Settings only works with Polygol.</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" 
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,700,1,0" />
+    <script src="/desktop/assets/gurapp/api/gurasuraisu-api.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <link rel="stylesheet" href="settings.css">
+</head>
+<body data-app-name="Settings">
+    <svg style="display: none">
+        <filter id="edge-refraction-only" color-interpolation-filters="linearRGB">
+            <!-- Part 1: Generate the edge turbulence pattern -->
+            <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="2" result="turbulence"></feTurbulence>
+            <feMorphology in="SourceGraphic" operator="erode" radius="4" result="eroded"></feMorphology>
+            <feComposite in="SourceGraphic" in2="eroded" operator="out" result="border_mask"></feComposite>
+            <feComposite in="turbulence" in2="border_mask" operator="in" result="edge_turbulence"></feComposite>
+    
+            <!-- Part 2: Create the two displacement passes -->
+            <feDisplacementMap in="SourceGraphic" in2="edge_turbulence" scale="15" xChannelSelector="R" yChannelSelector="G" result="disp_positive"></feDisplacementMap>
+            <feDisplacementMap in="SourceGraphic" in2="edge_turbulence" scale="-15" xChannelSelector="R" yChannelSelector="G" result="disp_negative"></feDisplacementMap>
+    
+            <!-- Part 3: Create masks to isolate the correct halves of each pass -->
+            <!-- Mask for the Top-Left Half -->
+            <feFlood flood-color="white" width="50%" height="50%" x="0" y="0" result="topLeftRect"></feFlood>
+            <!-- Mask for the Bottom-Right Half -->
+            <feFlood flood-color="white" width="50%" height="50%" x="50%" y="50%" result="bottomRightRect"></feFlood>
+    
+            <!-- Part 4: Apply the masks -->
+            <!-- Isolate the correctly refracted top-left from the positive pass -->
+            <feComposite in="disp_positive" in2="topLeftRect" operator="in" result="topLeft_part"></feComposite>
+            <!-- Isolate the correctly refracted bottom-right from the negative pass -->
+            <feComposite in="disp_negative" in2="bottomRightRect" operator="in" result="bottomRight_part"></feComposite>
+    
+            <!-- 
+               Part 5: Merge the perfectly isolated parts.
+               Because there is no overlap, 'lighten' works perfectly, but you could also use feMerge.
+            -->
+            <feBlend in="topLeft_part" in2="bottomRight_part" mode="lighten" result="blended_image"></feBlend>
+            
+            <!-- Part 6: Adjust final opacity -->
+            <feComponentTransfer in="blended_image">
+                <feFuncA type="linear" slope="0.9"></feFuncA>
+            </feComponentTransfer>
+        </filter>
+    </svg>
+    
+    <div class="container">
+    <div class="header">
+        <button class="back-btn" style="display: none;">
+            <span class="material-symbols-rounded" style="font-size: 20px;">arrow_back</span>
+        </button>
+        <h1 class="page-title">Settings</h1>
+    </div>
+        
+    <div class="pages-container">
+        <!-- Main Settings Page -->
+        <div class="page active" id="main-settings">           
+            <div class="setting-section">
+                <div class="setting-item nav-item" data-page="page-connect">
+                    <div class="setting-info">
+                        <span class="material-symbols-rounded">cell_tower</span>
+                        <span class="setting-label">Connections</span>
+                        <span class="setting-description">Add a device to Waves</span>
+                    </div>
+                    <span class="material-symbols-rounded">arrow_forward_ios</span>
+                </div>
+            </div>
+            <div class="setting-section">
+                <div class="setting-item nav-item" data-page="page-display">
+                    <div class="setting-info">
+                        <span class="material-symbols-rounded">dual_screen</span>
+                        <span class="setting-label">Display</span>
+                        <span class="setting-description">Control how your screen displays Polygol</span>
+                    </div>
+                    <span class="material-symbols-rounded">arrow_forward_ios</span>
+                </div>
+                <div class="setting-item nav-item" data-page="page-sound">
+                    <div class="setting-info">
+                        <span class="material-symbols-rounded">volume_up</span>
+                        <span class="setting-label">Sound & Haptics</span>
+                        <span class="setting-description">Control how Polygol uses your sound devices</span>
+                    </div>
+                    <span class="material-symbols-rounded">arrow_forward_ios</span>
+                </div>
+                <div class="setting-item nav-item" data-page="page-general">
+                    <div class="setting-info">
+                        <span class="material-symbols-rounded">page_info</span>
+                        <span class="setting-label">General</span>
+                        <span class="setting-description">Manage your overall setup and perferences</span>
+                    </div>
+                    <span class="material-symbols-rounded">arrow_forward_ios</span>
+                </div>
+            </div>
+            <div class="setting-section">
+                <div class="setting-item nav-item" data-page="page-homescreen">
+                    <div class="setting-info">
+                        <span class="material-symbols-rounded">select_window_2</span>
+                        <span class="setting-label">Desktop & Multitasking</span>
+                        <span class="setting-description">Adjust how you work on this device</span>
+                    </div>
+                    <span class="material-symbols-rounded">arrow_forward_ios</span>
+                </div>
+            </div>
+            <div class="setting-section">
+                <div class="setting-item nav-item" data-page="page-apps">
+                    <div class="setting-info">
+                        <span class="material-symbols-rounded">grid_view</span>
+                        <span class="setting-label">Apps</span>
+                        <span class="setting-description">Manage applications</span>
+                    </div>
+                    <span class="material-symbols-rounded">arrow_forward_ios</span>
+                </div>
+                <div class="setting-item nav-item" data-page="page-a11y">
+                    <div class="setting-info">
+                        <span class="material-symbols-rounded">accessible_forward</span>
+                        <span class="setting-label">Accessibility</span>
+                        <span class="setting-description">Personalize Polygol in ways that work best for you</span>
+                    </div>
+                    <span class="material-symbols-rounded">arrow_forward_ios</span>
+                </div>
+                <div class="setting-item nav-item" data-page="page-system">
+                    <div class="setting-info">
+                         <span class="material-symbols-rounded">manufacturing</span>
+                        <span class="setting-label">System</span>
+                        <span class="setting-description">Adjust system settings</span>
+                    </div>
+                    <span class="material-symbols-rounded">arrow_forward_ios</span>
+                </div>
+            </div>
+             <div class="setting-section">
+                <div class="setting-item nav-item" data-page="page-data">
+                    <div class="setting-info">
+                        <span class="material-symbols-rounded">account_circle</span>
+                        <span class="setting-label">Your Account</span>
+                        <span class="setting-description">Manage your Polygol data</span>
+                    </div>
+                    <span class="material-symbols-rounded">arrow_forward_ios</span>
+                </div>
+                <div class="setting-item nav-item" data-page="page-about">
+                    <div class="setting-info">
+                        <span class="material-symbols-rounded">info</span>
+                        <span class="setting-label">About</span>
+                        <span class="setting-description">See information about Polygol and your device</span>
+                    </div>
+                    <span class="material-symbols-rounded">arrow_forward_ios</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Display Page -->
+        <div class="page" id="page-display">
+            <div class="setting-section">
+                <h2 class="section-title">Screen</h2>
+                <div class="setting-item slider-item">
+                    <span class="setting-label">Brightness</span>
+                    <input type="range" min="20" max="100" class="styled-slider" 
+                           data-key="page_brightness">
+                </div>
+                <div class="setting-item slider-item">
+                    <div class="setting-info">
+                        <span class="setting-label">Tone</span>
+                        <span class="setting-description">Adjust screen temperature</span>
+                    </div>
+                    <input type="range" min="-10" max="10" class="styled-slider" 
+                           data-key="display_temperature">
+                </div>
+                <div class="setting-item" id="setting-nightMode">
+                    <div class="setting-info">
+                        <span class="setting-label">Night Mode</span>
+                        <span class="setting-description">Adjust the screen to be more clearer</span>
+                    </div>
+                    <div class="setting-control">
+                        <input type="checkbox" class="toggle-switch" 
+                               data-key="nightMode">
+                    </div>
+                </div>   
+                <div class="setting-item" id="setting-autoBrightness">
+                    <div class="setting-info">
+                        <span class="setting-label">Auto brightness</span>
+                        <span class="setting-description">Adapt brightness to ambient light</span>
+                    </div>
+                    <div class="setting-control">
+                        <input type="checkbox" class="toggle-switch" data-key="autoBrightness" id="auto-brightness-switch" checked>
+                    </div>
+                </div>
+                <div class="setting-item" id="setting-dynamicTone">
+                    <div class="setting-info">
+                        <span class="setting-label">Dynamic Tone</span>
+                        <span class="setting-description">Adapt screen temperature to ambient light</span>
+                    </div>
+                    <div class="setting-control">
+                        <input type="checkbox" class="toggle-switch" data-key="dynamicTone" id="dynamic-tone-switch" checked>
+                    </div>
+                </div>
+            </div>
+            <div class="setting-section">
+                <h2 class="section-title">Appearance</h2>
+                <div class="setting-item" id="setting-theme">
+                    <div class="setting-info">
+                        <span class="setting-label">Daylight</span>
+                        <span class="setting-description">Switch between light and dark themes</span>
+                    </div>
+                    <div class="setting-control">
+                        <input type="checkbox" class="toggle-switch" data-key="theme">
+                    </div>
+                </div>
+                <div class="setting-item" id="setting-tintEnabled">
+                    <div class="setting-info">
+                        <span class="setting-label">Color palette</span>
+                        <span class="setting-description">Tint colors with wallpaper</span>
+                    </div>
+                    <div class="setting-control">
+                        <input type="checkbox" class="toggle-switch" id="tint-colors-switch" data-key="tintEnabled">
+                    </div>
+                </div>
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <span class="setting-label">Dynamic Glass<button class="help-btn" onclick="Gurasuraisu.showSheet({ url: 'https://kirbindustries.gitbook.io/polygol/internal/settings/display/dynamic-glass', height: '100%' });">?</button></span>
+                        <span class="setting-description">Adjust the crunchy, tasty and smooth material</span>
+                    </div>
+                    <select class="styled-select" id="glass-effects-mode" data-key="glassEffectsMode">
+                        <option value="on">Liquid</option>
+                        <option value="focused">Focused</option>
+                        <option value="frosted">Frosted</option>
+                        <option value="off">Off</option>
+                    </select>
+                </div>
+            </div>
+            <div class="setting-section">
+                <h2 class="section-title">Night Stand<button class="help-btn" onclick="Gurasuraisu.showSheet({ url: 'https://kirbindustries.gitbook.io/polygol/internal/settings/display/night-stand', height: '100%' });">?</button></h2>
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <span class="setting-label">Night Stand</span>
+                        <span class="setting-description">Tint screen red and hide wallpaper</span>
+                    </div>
+                    <input type="checkbox" class="toggle-switch" data-key="nightStandEnabled">
+                </div>
+                
+                <div id="night-stand-config" style="display: none;background: var(--search-background);padding: 8px 16px;margin: 10px 0;border: 1px solid var(--glass-border);backdrop-filter: var(--edge-refraction-filter) saturate(2) blur(2.5px);box-shadow: var(--sun-shadow);border-radius: 35px;corner-shape: superellipse(1.5);">
+                    <div class="setting-item" style="border:none; padding: 5px 0; background: transparent; box-shadow: none;">
+                        <span class="setting-label" style="font-size: 14px;">Schedule</span>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <input type="time" class="form-input" data-key="nightStandStart" style="width: auto;">
+                            <span style="opacity: 0.5;">to</span>
+                            <input type="time" class="form-input" data-key="nightStandEnd" style="width: auto;">
+                        </div>
+                    </div>
+                    <div class="setting-item slider-item" style="border:none; padding: 5px 0; background: transparent; box-shadow: none;">
+                        <div class="setting-info">
+                            <span class="setting-label" style="font-size: 14px;">Dim Level</span>
+                        </div>
+                        <input type="range" min="20" max="100" class="styled-slider" data-key="nightStandBrightness">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sound & Haptics Page -->
+        <div class="page" id="page-sound">
+            <div class="setting-section">
+                <h2 class="section-title">Sound Feedback</h2>
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <span class="setting-label">Sound Feedback</span>
+                        <span class="setting-description">Play sounds when interacting</span>
+                    </div>
+                    <select class="styled-select" data-key="uiSoundMode">
+                        <option value="silent_off">Off in Silent Mode</option>
+                        <option value="always_on">Always On</option>
+                        <option value="always_off">Always Off</option>
+                    </select>
+                </div>
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <span class="setting-label">Gurapp Sounds</span>
+                        <span class="setting-description">Allow apps to play system UI sounds</span>
+                    </div>
+                    <input type="checkbox" class="toggle-switch" data-key="gurappSoundsEnabled">
+                </div>
+                <div class="setting-item slider-item">
+                    <div class="setting-info">
+                        <span class="setting-label">Volume</span>
+                    </div>
+                    <input type="range" min="0" max="100" class="styled-slider" data-key="sfxVolume">
+                </div>
+                <div class="setting-item" id="setting-adaptiveVolume">
+                    <div class="setting-info">
+                        <span class="setting-label">Adaptive Volume</span>
+                        <span class="setting-description">Automatically adjust volume to enhance audio</span>
+                    </div>
+                    <div class="setting-control">
+                        <input type="checkbox" class="toggle-switch" data-key="adaptiveVolume" id="adaptive-volume-switch" checked>
+                    </div>
+                </div>
+            </div>
+
+            <div class="setting-section">
+                <h2 class="section-title">Haptics</h2>
+                <div class="setting-item" id="setting-hapticsEnabled">
+                    <div class="setting-info">
+                        <span class="setting-label">Haptic Feedback</span>
+                        <span class="setting-description">Vibrate on interactions for supported devices</span>
+                    </div>
+                    <div class="setting-control">
+                        <input type="checkbox" class="toggle-switch" data-key="hapticsEnabled" id="haptics-switch" checked>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Apps Page -->
+        <div class="page" id="page-apps">
+            <div class="setting-section">
+                <div id="apps-list-container">
+                    <!-- Dynamic list of apps and permissions -->
+                </div>
+            </div>
+            <button class="action-btn" onclick="Gurasuraisu.showSheet({ url: 'https://kirbindustries.gitbook.io/polygol/internal/settings/apps/disabling-components', height: '100%' });">Help me with components</button>
+        </div>
+
+        <!-- App Details Page -->
+        <div class="page" id="page-app-details">
+            <div class="setting-section" style="display: flex; flex-direction: column; align-items: center; padding: 25px 20px 20px;">
+                <img id="detail-app-icon" src="" style="width: 72px; height: 72px; corner-shape: superellipse(1.25); border-radius: 35%; margin-bottom: 12px; object-fit: cover; box-shadow: var(--sun-shadow);">
+                <h2 id="detail-app-name" style="margin: 0; color: var(--text-color); font-size: 24px;">App Name</h2>
+                <span id="detail-app-url" style="opacity: 0.5; font-size: 13px; margin-top: 4px; text-align: center; word-break: break-all;">url</span>
+                
+                <div style="display: flex; gap: 10px; margin-top: 24px; width: 100%;">
+                    <button class="action-btn" id="btn-app-force-stop" style="flex: 1; background-color: var(--search-background); justify-content: center;">Force stop</button>
+                    <button class="action-btn" id="btn-app-uninstall" style="flex: 1; background-color: #ff5252; color: white; border: none; justify-content: center;">Uninstall</button>
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 10px; width: 100%;">
+                    <button class="action-btn" id="btn-app-clear-tracking-data" style="flex: 1; background-color: var(--search-background); justify-content: center;">Clear tracking data</button>
+                </div>
+            </div>
+            
+            <div class="setting-section">
+                <h2 class="section-title">Permissions</h2>
+                <div id="detail-app-permissions">
+                    <!-- Toggles injected here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Desktop Page -->
+        <div class="page" id="page-homescreen">
+            <div class="setting-section">
+                 <div class="setting-item nav-item" data-page="page-wallpaper">
+                    <div class="setting-info">
+                        <span class="setting-label">Wallpaper</span>
+                    </div>
+                    <span class="material-symbols-rounded">arrow_forward_ios</span>
+                </div>
+                <div class="setting-item" id="setting-doubleClickToSleep">
+                    <div class="setting-info">
+                        <span class="setting-label">Double Click to Sleep</span>
+                        <span class="setting-description">Quickly double tap empty space to enter sleep mode</span>
+                    </div>
+                    <div class="setting-control">
+                        <input type="checkbox" class="toggle-switch" data-key="doubleClickToSleep" id="double-tap-switch" checked>
+                    </div>
+                </div>
+            </div>
+            <div class="setting-section">
+                <h2 class="section-title">Live Activities</h2>
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <span class="setting-label">Show on Desktop</span>
+                    </div>
+                    <input type="checkbox" class="toggle-switch" data-key="homeActivitiesEnabled">
+                </div>
+            </div>
+        </div>
+        <!-- Wallpaper Settings Page -->
+        <div class="page" id="page-wallpaper">
+            <div class="setting-section">
+                 <div class="setting-item">
+                    <div class="setting-info">
+                        <span class="setting-label">Wallpaper upload</span>
+                        <span class="setting-description">Supports PNG, JPEG, JPG, WEBP, GIF and MP4 files<br>Attach multiple files to create a slideshow</span>
+                    </div>
+                     <button class="action-btn" id="btn-upload-wallpaper">
+                        Add
+                    </button>
+                    <input type="file" id="wallpaper-input" 
+                           accept=".png, .jpeg, .jpg, .webp, .gif, .mp4" multiple 
+                           style="display: none;">
+                </div>
+            </div>
+            <div class="setting-section">
+                <h2 class="section-title">Effects</h2>
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <span class="setting-label">Depth</span>
+                        <span class="setting-description">Use on-device intelligence to add overlay effects to your image wallpaper</span>
+                    </div>
+                    <input type="checkbox" class="toggle-switch" data-key="depthEffectEnabled">
+                </div>
+            </div>
+        </div>
+        <!-- System Page -->
+        <div class="page" id="page-system">
+            <div class="setting-section">
+                <h2 class="section-title">Power</h2>
+                <div class="setting-item" id="setting-adaptiveBatterySaver">
+                    <div class="setting-info">
+                        <span class="setting-label">Adaptive Eco Mode</span>
+                        <span class="setting-description">Dynamically changes settings to be friendly to the enviroment</span>
+                    </div>
+                    <div class="setting-control">
+                        <input type="checkbox" class="toggle-switch" data-key="adaptiveBatterySaver" id="eco-mode-switch" checked>
+                    </div>
+                </div>
+            </div>
+            <div class="setting-section">
+                <h2 class="section-title">Sleep<button class="help-btn" onclick="Gurasuraisu.showSheet({ url: 'https://kirbindustries.gitbook.io/polygol/internal/settings/system/sleep-mode', height: '100%' });">?</button></h2>
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <span class="setting-label">Sleep Mode</span>
+                        <span class="setting-description">Choose what displays when you enter sleep mode</span>
+                    </div>
+                    <select class="styled-select" data-key="sleepModeStyle">
+                        <option value="dim-show">Show all</option>
+                        <option value="dim-hide">Wallpaper only</option>
+                        <option value="hide-show">Content only</option>
+                        <option value="off">Turn off screen</option>
+                    </select>
+                </div>
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <span class="setting-label">Sleep After</span>
+                    </div>
+                    <select class="styled-select" data-key="autoSleepDuration">
+                        <option value="60000">1 Minute</option>
+                        <option value="300000">5 Minutes</option>
+                        <option value="900000">15 Minutes</option>
+                        <option value="0">Never</option>
+                    </select>
+                </div>
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <span class="setting-label">Apply On</span>
+                    </div>
+                    <select class="styled-select" data-key="autoSleepScope">
+                        <option value="home">Desktop Only</option>
+                        <option value="home-apps">Desktop & Apps</option>
+                    </select>
+                </div>
+            </div>
+            <div class="setting-section">
+                <h2 class="section-title">Browser</h2>
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <span class="setting-label">Keep Polygol on<button class="help-btn" onclick="Gurasuraisu.showSheet({ url: 'https://kirbindustries.gitbook.io/polygol/internal/settings/system/keep-polygol-on', height: '100%' });">?</button></span>
+                        <span class="setting-description">Prevent display sleep from the browser</span>
+                    </div>
+                    <select class="styled-select" data-key="wakeLockMode">
+                        <option value="modern">Auto</option>
+                        <option value="legacy">Legacy</option>
+                        <option value="disabled">Disabled</option>
+                    </select>
+                </div>
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <span class="setting-label">Resource Manager<button class="help-btn" onclick="Gurasuraisu.showSheet({ url: 'https://kirbindustries.gitbook.io/polygol/internal/settings/system/resource-manager', height: '100%' });">?</button></span>
+                        <span class="setting-description">Automatically reduce resource intensity when detected</span>
+                    </div>
+                    <div class="setting-control">
+                        <input type="checkbox" class="toggle-switch" data-key="resourceManagerEnabled">
+                    </div>
+                </div>
+                <div class="setting-item" id="setting-predictivePreload">
+                    <div class="setting-info">
+                        <span class="setting-label">Predictive Loading</span>
+                        <span class="setting-description">Learn your habits to seamlessly preload your next experience</span>
+                    </div>
+                    <div class="setting-control">
+                        <input type="checkbox" class="toggle-switch" data-key="predictivePreload" id="predictive-preload-switch" checked>
+                    </div>
+                </div>
+                <div class="setting-item" id="setting-oledProtection">
+                    <div class="setting-info">
+                        <span class="setting-label">OLED burn-in protection</span>
+                        <span class="setting-description">Periodically shifts the interface to prevent screen burn-in</span>
+                    </div>
+                    <div class="setting-control">
+                        <input type="checkbox" class="toggle-switch" data-key="oledBurnInProtection" id="oled-protection-switch" checked>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- General Page -->
+        <div class="page" id="page-general">
+            <div class="setting-section">
+                <h2 class="section-title">Functionality</h2>
+                 <div class="setting-item" id="setting-gurappsEnabled">
+                    <div class="setting-info">
+                        <span class="setting-label">Gurapps</span>
+                        <span class="setting-description">Enable Polygol applications</span>
+                    </div>
+                    <div class="setting-control">
+                        <input type="checkbox" class="toggle-switch" 
+                               data-key="gurappsEnabled">
+                    </div>
+                </div>
+            </div>
+            <div class="setting-section">
+                <h2 class="section-title">Region</h2>
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <span class="setting-label">Language</span>
+                        <span class="setting-description">Gurapps and other system components are currently not supported</span>
+                    </div>
+                    <select class="styled-select" data-key="selectedLanguage">
+                        <option value="EN">English</option>
+                        <option value="JP">日本語</option>
+                        <option value="DE">Deutsch</option>
+                        <option value="ES">Español</option>
+                        <option value="KO">한국어</option>
+                        <option value="ZH">中文</option>
+                    </select>
+                </div>
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <span class="setting-label">12 hour format</span>
+                        <span class="setting-description">Overrides Clock Format</span>
+                    </div>
+                    <input type="checkbox" class="toggle-switch" 
+                           data-key="use12HourFormat">
+                </div>
+            </div>
+        </div>
+        <!-- Accessibility Page -->
+        <div class="page" id="page-a11y">
+            <div class="setting-section">
+                <h2 class="section-title">Vision</h2>
+                <div class="setting-item" id="setting-animationsEnabled">
+                    <div class="setting-info">
+                        <span class="setting-label">Motion</span>
+                        <span class="setting-description">Enable animations</span>
+                    </div>
+                    <div class="setting-control">
+                        <input type="checkbox" class="toggle-switch" data-key="animationsEnabled">
+                    </div>
+                </div>
+                <div class="setting-item" id="setting-highContrast">
+                    <div class="setting-info">
+                        <span class="setting-label">Contrast</span>
+                        <span class="setting-description">Reduce visual complexity</span>
+                    </div>
+                    <div class="setting-control">
+                        <input type="checkbox" class="toggle-switch" data-key="highContrast">
+                    </div>
+                </div>
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <span class="setting-label">Color Filter</span>
+                        <span class="setting-description">Adjust the display's color production</span>
+                    </div>
+                    <select class="styled-select" data-key="colorFilter">
+                        <option value="none">Off</option>
+                        <option value="grayscale">Grayscale</option>
+                        <option value="invert">Inverted</option>
+                        <option value="protanopia">Protanopia</option>
+                        <option value="deuteranopia">Deuteranopia</option>
+                        <option value="tritanopia">Tritanopia</option>
+                    </select>
+                </div>
+            </div>
+            <div class="setting-section">
+                <h2 class="section-title">Motor</h2>
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <span class="setting-label">Switch Access</span>
+                        <span class="setting-description">Navigate the interface using Tab/Space/Enter</span>
+                    </div>
+                    <input type="checkbox" class="toggle-switch" data-key="keyboardNavEnabled">
+                </div>
+            </div>
+            <div class="setting-section">
+                <h2 class="section-title">Hearing</h2>
+                Go to Sound & Haptics to adjust these settings
+            </div>
+        </div>
+        <!-- About Page -->
+        <div class="page" id="page-about">
+            <div class="setting-section">
+                <img src="assets/img/text-about-banner-transparent.png" style="width: 400px; margin-bottom: 25px;">
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <span class="setting-label">Polygol</span>
+                    </div>
+                    <button class="action-btn" onclick="Gurasuraisu.showSheet({ url: 'https://kirbindustries.gitbook.io/polygol', height: '100%' });">Details</button>
+                </div>
+                <div class="setting-item nav-item" data-page="page-licenses">
+                    <div class="setting-info">
+                        <span class="setting-label">Acknowledgements</span>
+                        <span class="setting-description">Open source licenses and legal notices</span>
+                    </div>
+                    <span class="material-symbols-rounded">arrow_forward_ios</span>
+                </div>
+            </div>
+            <div class="setting-section">
+                <h2 class="section-title">System Update</h2>
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <span class="setting-label">Check for Updates</span>
+                        <span class="setting-description">Download an update if it's available</span>
+                    </div>
+                    <div class="setting-control">
+                        <button class="action-btn" id="btn-force-update">
+                            Check
+                        </button>
+                    </div>
+                </div>
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <span class="setting-label">Automatic Updates</span>
+                        <span class="setting-description">Receive notifications when a new version is available</span>
+                    </div>
+                    <div class="setting-control">
+                        <input type="checkbox" class="toggle-switch" id="updates-switch">
+                    </div>
+                </div>
+            </div>
+            <div class="setting-section">
+                <img src="https://github.com/kirbIndustries/assets/blob/main/brand/img/colorlogotxt/text-owner-transparent.png?raw=true" style="width: 200px; margin: 15px 0;">
+                <div>
+                    <span>© Copyright kirbIndustries 2024-2026
+                        <br><br>
+                        <small>You are free to do anything to the code under CC BY-NC 4.0. You may not use our brand in any method not authorized, including identifiable visual assets.</small>
+                        <br>
+                    </span>
+                    <br>
+                    <small>Pen island no spaces all caps</small>
+                </div>
+            </div>
+        </div>
+        <!-- Account Page -->
+        <div class="page" id="page-data">
+            <div class="setting-section">
+                <div class="setting-item nav-item" data-page="page-storage">
+                    <div class="setting-info">
+                        <span class="setting-label">Manage storage</span>
+                    </div>
+                    <span class="material-symbols-rounded">arrow_forward_ios</span>
+                </div>
+                <div class="setting-item">
+                     <div class="setting-info">
+                        <span class="setting-label">System Transfer</span>
+                        <span class="setting-description">Backup, transfer and restore your data</span>
+                    </div>
+                    <div class="setting-control">
+                        <button class="action-btn" onclick="Gurasuraisu.showAlert('polygol.github.io/transfer', 'Close this tab, and open this link in a new tab', 'open_in_new')">
+                            Open
+                        </button>
+                    </div>
+                </div>
+                <div class="setting-item">
+                     <div class="setting-info">
+                        <span class="setting-label">Recovery Mode</span>
+                        <span class="setting-description">Factory reset Polygol</span>
+                    </div>
+                    <div class="setting-control">
+                        <button class="action-btn" onclick="Gurasuraisu.showAlert('polygol.github.io/recovery', 'Close this tab, and open this link in a new tab', 'open_in_new')">
+                            Open
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="setting-section">
+                <h2 class="section-title">Privacy</h2>
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <span class="setting-label">Analytics<button class="help-btn" onclick="Gurasuraisu.showSheet({ url: 'https://kirbindustries.gitbook.io/polygol/internal/settings/your-account/analytics', height: '100%' });">?</button></span>
+                        <span class="setting-description">Share anonymous usage data to help improve Polygol</span>
+                    </div>
+                    <div class="setting-control">
+                        <input type="checkbox" class="toggle-switch" data-key="telemetryEnabled">
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Storage Overview Page -->
+        <div class="page" id="page-storage">
+            <div class="setting-section">
+                <div class="storage-visualizer-container">
+                    <div class="storage-labels">
+                        <span id="storage-used-label">Calculating...</span>
+                        <span id="storage-total-label"></span>
+                    </div>
+                    <div class="storage-bar-bg">
+                        <div class="storage-bar-fill" id="storage-bar-fill" style="width: 0%"></div>
+                    </div>
+                    <p class="setting-description" style="margin-top: 10px;">
+                        Includes wallpapers, cached apps, and system data.
+                    </p>
+                </div>
+            </div>
+        
+            <h2 class="section-title">Data Sources</h2>
+            <div class="setting-section">
+                <div class="setting-item nav-item" id="btn-open-ls">
+                    <div class="setting-info">
+                        <span class="material-symbols-rounded">description</span>
+                        <span class="setting-label">Local Storage</span>
+                        <span class="setting-description">System settings & app states</span>
+                    </div>
+                    <span class="material-symbols-rounded">arrow_forward_ios</span>
+                </div>
+                <div class="setting-item nav-item" id="btn-open-cache">
+                    <div class="setting-info">
+                        <span class="material-symbols-rounded">cached</span>
+                        <span class="setting-label">Cache Storage</span>
+                        <span class="setting-description">Offline app files</span>
+                    </div>
+                    <span class="material-symbols-rounded">arrow_forward_ios</span>
+                </div>
+            </div>
+        
+            <h2 class="section-title">Databases (IndexedDB)</h2>
+            <div class="setting-section" id="database-list-container">
+                <!-- DB List items will be injected here -->
+            </div>
+        </div>
+
+        <!-- LocalStorage Viewer -->
+        <div class="page" id="page-localstorage">
+            <div class="setting-section">
+                 <div class="setting-item" style="background: var(--transparent-color); border: none; box-shadow: none;">
+                    <div class="setting-info">
+                        <span class="setting-label">Local Storage</span>
+                        <span class="setting-description">Key-Value Pairs</span>
+                    </div>
+                     <button class="action-btn" id="btn-clear-ls" style="background-color: #ff5252; color: white; border: none;">
+                        Clear All
+                    </button>
+                </div>
+            </div>
+            <div class="setting-section" id="ls-list-container">
+                <!-- LS Items injected here -->
+            </div>
+        </div>
+        
+        <!-- Cache Viewer -->
+        <div class="page" id="page-cache">
+            <div class="setting-section">
+                 <div class="setting-item" style="background: var(--transparent-color); border: none; box-shadow: none;">
+                    <div class="setting-info">
+                        <span class="setting-label">Cache Storage</span>
+                        <span class="setting-description">Service Worker Caches</span>
+                    </div>
+                </div>
+            </div>
+            <div class="setting-section" id="cache-list-container">
+                <!-- Cache Items injected here -->
+            </div>
+        </div>
+        
+        <!-- Database Details Page (Listing Object Stores) -->
+        <div class="page" id="page-db-details">
+            <div class="setting-section">
+                <div class="setting-item" style="background: var(--transparent-color); border: none; box-shadow: none;">
+                    <div class="setting-info">
+                        <span class="setting-label" id="current-db-name-label">DB Name</span>
+                        <span class="setting-description">Select a Store to view or edit data</span>
+                    </div>
+                    <button class="action-btn" id="btn-delete-current-db" style="background-color: #ff5252; color: white; border: none;">
+                        Delete DB
+                    </button>
+                </div>
+            </div>
+            <h2 class="section-title">Object Stores</h2>
+            <div class="setting-section" id="store-list-container">
+                <!-- Object Stores will be injected here -->
+            </div>
+        </div>
+        
+        <!-- Store Viewer Page (Listing Records) -->
+        <div class="page" id="page-store-viewer">
+            <div class="setting-section">
+                 <div class="setting-item" style="background: var(--transparent-color); border: none; box-shadow: none;">
+                    <div class="setting-info">
+                        <span class="setting-label" id="current-store-name-label">Store Name</span>
+                        <span class="setting-description">Raw Data View</span>
+                    </div>
+                     <button class="action-btn" id="btn-clear-current-store">
+                        Clear All
+                    </button>
+                </div>
+            </div>
+            <div class="setting-section" id="record-list-container">
+                <!-- Records will be injected here -->
+            </div>
+        </div>
+        
+        <!-- Record Editor Page -->
+        <div class="page" id="page-record-editor">
+            <div class="setting-section">
+                <div class="setting-item" style="flex-direction: column; align-items: flex-start; gap: 10px;">
+                    <label class="setting-label">Key</label>
+                    <input type="text" id="record-key-display" class="form-input" style="width: 100%; cursor: default;" readonly>
+                </div>
+                <div class="setting-item" style="flex-direction: column; align-items: flex-start; gap: 10px; height: auto;">
+                    <label class="setting-label">Value (JSON)</label>
+                    <textarea id="record-value-editor" class="form-input" style="width: 100%; height: 300px; font-family: monospace; font-size: 12px; line-height: 1.4; resize: none;"></textarea>
+                </div>
+                <div class="setting-item" style="background: transparent; border: none; box-shadow: none; justify-content: flex-end; gap: 10px;">
+                     <button class="action-btn" id="btn-delete-record" style="background-color: #ff5252; color: white; border: none;">
+                        Delete
+                    </button>
+                    <button class="action-btn" id="btn-save-record">
+                        Save Changes
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="page" id="page-connect">
+            <div class="setting-section">
+                <h2 class="section-title">Waves<button class="help-btn" onclick="Gurasuraisu.showSheet({ url: 'https://kirbindustries.gitbook.io/polygol/waves-lander', height: '100%' });">?</button></h2>
+                
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <span class="setting-label">Allow New Connections<button class="help-btn" onclick="Gurasuraisu.showSheet({ url: 'https://kirbindustries.gitbook.io/polygol/internal/settings/connections/allow-new-connections', height: '100%' });">?</button></span>
+                        <span class="setting-description">Make this device visible to remotes</span>
+                    </div>
+                    <input type="checkbox" class="toggle-switch" id="waves-discovery-switch">
+                </div>
+
+                <div class="setting-item" style="flex-direction: column; align-items: center; text-align: center; padding: 30px;">
+                    <p class="setting-description" style="margin-bottom: 15px;">
+                        Enter this PIN on your phone to connect
+                    </p>
+                    <p class="setting-description"">
+                        Open Waves app at polygol.github.io/waves
+                    </p>
+                    
+                    <div id="waves-code-display" style="font-family: 'Roboto Mono', monospace; font-size: 36px; font-weight: 700; letter-spacing: 4px; color: var(--text-color); margin: 20px 0; user-select: text;">
+                        ••••••••
+                    </div>
+                    
+                    <div style="display: flex; gap: 10px; width: 100%; justify-content: center;">
+                         <button class="action-btn" id="btn-refresh-waves">Show PIN</button>
+                         <button class="action-btn" id="btn-reset-waves" style="background-color: #ff5252; color: white; border: none;">Unpair</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Licenses Page -->
+        <div class="page" id="page-licenses">
+            <div class="setting-section" id="licenses-container" style="user-select: text; -webkit-user-select: text; padding: 10px;">
+                <div style="padding: 20px; text-align: center; color: var(--secondary-text-color);">Loading...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals for Complex Settings -->
+    <div class="modal-overlay" id="waves-auth-modal">
+        <div class="modal-container" style="text-align: center;">
+            <h3>Pair a new remote</h3>
+            <p style="margin: 10px 0 20px; opacity: 0.8;">Click this emoji on your phone</p>
+            <div id="waves-auth-emoji" style="font-size: 80px; margin: 20px 0;">
+                ❓
+            </div>
+            
+            <button class="action-btn" id="btn-reject-auth" style="background-color: #ff5252; color: white; border: none; width: 100%; margin-top: 15px;">
+                Reject
+            </button>
+        </div>
+    </div>
+        
+    <script src="settings.js" defer></script>
+</body>
+</html>

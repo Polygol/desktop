@@ -1,0 +1,355 @@
+// --- Color Tinting Logic ---
+let tintEnabled = localStorage.getItem('tintEnabled') === 'true';
+window.currentTintVariables = null; // Store calculated vars for new apps
+
+// Helper to parse CSS color strings (rgb, rgba, hex) into {r,g,b,a}
+function parseCssColor(str) {
+    if (!str) return null;
+    str = str.trim();
+    
+    // Create a temporary element to let the browser normalize the color
+    const div = document.createElement('div');
+    div.style.color = str;
+    document.body.appendChild(div);
+    const computed = getComputedStyle(div).color;
+    document.body.removeChild(div);
+    
+    // Computed is always rgb() or rgba()
+    const match = computed.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
+    if (match) {
+        return {
+            r: parseInt(match[1]),
+            g: parseInt(match[2]),
+            b: parseInt(match[3]),
+            a: match[4] !== undefined ? parseFloat(match[4]) : 1
+        };
+    }
+    return null;
+}
+
+function hslToRgb(h, s, l) {
+    let r, g, b;
+    if (s === 0) {
+        r = g = b = l; // achromatic
+    } else {
+        const hue2rgb = (p, q, t) => {
+            if (t < 0) t += 1;
+            if (t > 1) t -= 1;
+            if (t < 1/6) return p + (q - p) * 6 * t;
+            if (t < 1/2) return q;
+            if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+            return p;
+        };
+        const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+        const p = 2 * l - q;
+        r = hue2rgb(p, q, h + 1/3);
+        g = hue2rgb(p, q, h);
+        b = hue2rgb(p, q, h - 1/3);
+    }
+    return { r: Math.round(r * 255), g: Math.round(g * 255), b: Math.round(b * 255) };
+}
+
+function applyHueSaturationShift(colorObj, hueShiftDeg, satMultiplierNorm) {
+    if (!colorObj) return colorObj;
+    let [h, s, l] = rgbToHsl(colorObj.r, colorObj.g, colorObj.b);
+    
+    // Apply Hue Shift
+    if (hueShiftDeg !== 0) {
+        let shiftNorm = hueShiftDeg / 360;
+        h = (h + shiftNorm) % 1;
+        if (h < 0) h += 1; // Wrap around safely
+    }
+    
+    // Apply Saturation Multiplier
+    if (satMultiplierNorm !== 1) {
+        s = Math.max(0, Math.min(1, s * satMultiplierNorm));
+    }
+    
+    const newRgb = hslToRgb(h, s, l);
+    newRgb.a = colorObj.a !== undefined ? colorObj.a : 1;
+    return newRgb;
+}
+
+function hexToRgb(hex) {
+    var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16)
+    } : null;
+}
+
+function mixColors(base, tint, weight) {
+    if (!base || !tint) return base;
+    const r = Math.round(base.r * (1 - weight) + tint.r * weight);
+    const g = Math.round(base.g * (1 - weight) + tint.g * weight);
+    const b = Math.round(base.b * (1 - weight) + tint.b * weight);
+    return { r, g, b, a: base.a }; // Preserve base alpha
+}
+
+// --- Color Analysis Utilities ---
+function rgbToHsl(r, g, b) {
+    r /= 255; g /= 255; b /= 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    let h, s, l = (max + min) / 2;
+    if (max === min) {
+        h = s = 0; // achromatic
+    } else {
+        const d = max - min;
+        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+        switch (max) {
+            case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+            case g: h = (b - r) / d + 2; break;
+            case b: h = (r - g) / d + 4; break;
+        }
+        h /= 6;
+    }
+    return [h, s, l];
+}
+
+function getDominantColor(imgSrc) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'Anonymous';
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.drawImage(img, 0, 0);
+            try {
+                const data = ctx.getImageData(0, 0, img.width, img.height).data;
+                const colorCounts = {};
+                let maxCount = 0;
+                let dominantColor = {r: 255, g: 255, b: 255}; // Default white
+                for (let i = 0; i < data.length; i += 40) {
+                    // Skip transparent or near-white/black pixels to get actual color
+                    if (data[i+3] < 128 || (data[i] > 250 && data[i+1] > 250 && data[i+2] > 250) || (data[i] < 5 && data[i+1] < 5 && data[i+2] < 5)) continue;
+                    
+                    const rgb = `${data[i]},${data[i+1]},${data[i+2]}`;
+                    colorCounts[rgb] = (colorCounts[rgb] || 0) + 1;
+                    if (colorCounts[rgb] > maxCount) {
+                        maxCount = colorCounts[rgb];
+                        dominantColor = { r: data[i], g: data[i+1], b: data[i+2] };
+                    }
+                }
+                resolve(dominantColor);
+            } catch (e) {
+                reject(e); // Likely a CORS error
+            }
+        };
+        img.onerror = () => resolve({ r: 255, g: 255, b: 255 }); // Resolve with white on error
+        img.src = imgSrc;
+    });
+}
+
+function applySystemTint() {
+    const root = document.documentElement;
+    const wallpaperColors = window.activeWallpaperColor; // Now expects { primary, secondary }
+
+    // Normalize input
+    let primaryTint = null;
+    let backgroundTint = null;
+
+    if (wallpaperColors) {
+        if (wallpaperColors.primary) {
+            // New Object Structure
+            primaryTint = wallpaperColors.primary;
+            backgroundTint = wallpaperColors.secondary || primaryTint;
+        } else if (Array.isArray(wallpaperColors)) {
+            // Legacy Array Structure
+            primaryTint = { r: wallpaperColors[0], g: wallpaperColors[1], b: wallpaperColors[2] };
+            backgroundTint = primaryTint;
+        } else {
+             primaryTint = wallpaperColors;
+             backgroundTint = wallpaperColors;
+        }
+    }
+
+    // --- NEW: Apply Live Hue & Saturation Adjustments ---
+    // Reads directly from the current active sliders
+    const hueSlider = document.getElementById('wallpaper-hue-slider');
+    const satSlider = document.getElementById('wallpaper-saturate-slider');
+    const hueShift = hueSlider ? parseFloat(hueSlider.value) : 0;
+    const satMult = satSlider ? (parseFloat(satSlider.value) / 100) : 1;
+
+    if (primaryTint && (hueShift !== 0 || satMult !== 1)) {
+        primaryTint = applyHueSaturationShift(primaryTint, hueShift, satMult);
+    }
+    if (backgroundTint && (hueShift !== 0 || satMult !== 1)) {
+        backgroundTint = applyHueSaturationShift(backgroundTint, hueShift, satMult);
+    }
+
+    // Check if transparency is off to apply stronger tints
+    const isTransOff = localStorage.getItem('glassEffectsMode') === 'off';
+
+    // Define variables to tint and their intensity weights
+	let tintWeights = {
+	    '--background-color-dark': { w: 0.2, type: 'bg' },
+	    '--background-color-dark-tr': { w: 0.2, type: 'bg' },
+	    '--modal-background-dark': { w: 0.2, type: 'bg' },
+	    '--modal-transparent-dark': { w: 0.2, type: 'bg' },
+	    '--search-background-dark': { w: 0.2, type: 'bg' },
+	    '--dark-overlay': { w: 0.4, type: 'bg' },
+	    '--dark-transparent': { w: 0.2, type: 'bg' },
+	    '--glass-border-dark': { w: 0.2, type: 'primary' },
+	    '--text-color-dark': { w: 0.1, type: 'primary' },
+	    '--secondary-text-color-dark': { w: 0.1, type: 'primary' },
+	    '--accent-dark': { w: 0.6, type: 'primary' },
+	    '--tonal-dark': { w: 0.6, type: 'bg' },
+	
+	    '--background-color-light': { w: 0.2, type: 'bg' },
+	    '--background-color-light-tr': { w: 0.2, type: 'bg' },
+	    '--modal-background-light': { w: 0.2, type: 'bg' },
+	    '--modal-transparent-light': { w: 0.2, type: 'bg' },
+	    '--search-background-light': { w: 0.2, type: 'bg' },
+	    '--light-overlay': { w: 0.4, type: 'bg' },
+	    '--light-transparent': { w: 0.2, type: 'bg' },
+	    '--glass-border-light': { w: 0.2, type: 'primary' },
+	    '--text-color-light': { w: 0.1, type: 'primary' },
+	    '--secondary-text-color-light': { w: 0.1, type: 'primary' },
+	    '--accent-light': { w: 0.6, type: 'primary' },
+	    '--tonal-light': { w: 0.6, type: 'bg' },
+
+	    '--background-color-dark-highcontrast': { w: 0.2, type: 'bg' },
+	    '--background-color-dark-tr-highcontrast': { w: 0.2, type: 'bg' },
+	    '--modal-background-dark-highcontrast': { w: 0.2, type: 'bg' },
+	    '--modal-transparent-dark-highcontrast': { w: 0.2, type: 'bg' },
+	    '--search-background-dark-highcontrast': { w: 0.4, type: 'bg' },
+	    '--dark-overlay-highcontrast': { w: 0.8, type: 'bg' },
+	    '--text-color-dark-highcontrast': { w: 0.3, type: 'primary' },
+	    '--secondary-text-color-dark-highcontrast': { w: 0.3, type: 'primary' },
+	    '--accent-dark-highcontrast': { w: 0.6, type: 'primary' },
+	    '--tonal-dark-highcontrast': { w: 0.6, type: 'bg' },
+	
+	    '--background-color-light-highcontrast': { w: 0.2, type: 'bg' },
+	    '--background-color-light-tr-highcontrast': { w: 0.2, type: 'bg' },
+	    '--modal-background-light-highcontrast': { w: 0.2, type: 'bg' },
+	    '--modal-transparent-light-highcontrast': { w: 0.2, type: 'bg' },
+	    '--search-background-light-highcontrast': { w: 0.4, type: 'bg' },
+	    '--light-overlay-highcontrast': { w: 0.8, type: 'bg' },
+	    '--text-color-light-highcontrast': { w: 0.3, type: 'primary' },
+	    '--secondary-text-color-light-highcontrast': { w: 0.3, type: 'primary' },
+	    '--accent-light-highcontrast': { w: 0.6, type: 'primary' },
+	    '--tonal-light-highcontrast': { w: 0.6, type: 'bg' }
+	};
+
+    if (isTransOff) {
+        tintWeights = {
+            ...tintWeights,
+            '--background-color-dark': { w: 0.35, type: 'bg' },
+            '--background-color-dark-tr': { w: 0.2, type: 'bg' },
+            '--modal-background-dark': { w: 0.35, type: 'bg' },
+            '--modal-transparent-dark': { w: 0.35, type: 'bg' },
+            '--search-background-dark': { w: 0.35, type: 'bg' },
+            '--dark-overlay': { w: 0.5, type: 'bg' },
+            '--dark-transparent': { w: 0.3, type: 'bg' },
+            '--glass-border-dark': { w: 0.3, type: 'primary' },
+            
+            '--background-color-light': { w: 0.35, type: 'bg' },
+            '--background-color-light-tr': { w: 0.2, type: 'bg' },
+            '--modal-background-light': { w: 0.35, type: 'bg' },
+            '--modal-transparent-light': { w: 0.35, type: 'bg' },
+            '--search-background-light': { w: 0.35, type: 'bg' },
+            '--light-overlay': { w: 0.5, type: 'bg' },
+            '--light-transparent': { w: 0.3, type: 'bg' },
+            '--glass-border-light': { w: 0.3, type: 'primary' }
+        };
+    }
+
+    Object.keys(tintWeights).forEach(key => root.style.removeProperty(key));
+
+    if (!tintEnabled || !primaryTint) {
+        window.currentTintVariables = null;
+        broadcastThemeVariables(null); 
+        return;
+    }
+
+    const newVars = {};
+    const computedStyle = getComputedStyle(root);
+
+    // 2. Mix Colors
+    Object.entries(tintWeights).forEach(([key, config]) => {
+        const cssValue = computedStyle.getPropertyValue(key);
+        const baseColor = parseCssColor(cssValue);
+        
+        if (baseColor) {
+            // Select Primary or Secondary/Background tint based on config
+            const tint = config.type === 'bg' ? backgroundTint : primaryTint;
+            
+            const mixed = mixColors(baseColor, tint, config.w);
+            const val = `rgba(${mixed.r}, ${mixed.g}, ${mixed.b}, ${mixed.a})`;
+            newVars[key] = val;
+        }
+    });
+
+    // 3. Apply
+    Object.entries(newVars).forEach(([key, val]) => root.style.setProperty(key, val));
+    
+    // 4. Update global state and broadcast
+    window.currentTintVariables = newVars;
+    broadcastThemeVariables(newVars);
+}
+
+function broadcastThemeVariables(variables) {
+    const iframes = document.querySelectorAll('iframe[data-gurasuraisu-iframe]');
+    iframes.forEach(iframe => {
+        if (iframe.contentWindow) {
+            const targetOrigin = getOriginFromUrl(iframe.src);
+            iframe.contentWindow.postMessage({
+                type: 'themeVariablesUpdate',
+                variables: variables
+            }, targetOrigin);
+        }
+    });
+}
+
+// Theme switching functionality
+function setupThemeSwitcher() {
+    // Check and set initial theme
+    const currentTheme = localStorage.getItem('theme') || 'dark';
+    document.body.classList.toggle('light-theme', currentTheme === 'light');
+}
+
+function getGlassFilterValue(mode) {
+    switch (mode) {
+        case 'focused': return 'opacity(0.9)';
+        case 'frosted': return 'blur(10px) opacity(0.9)';
+        case 'off': return 'none'; // Will effectively disable backdrop-filter due to CSS syntax rules or explicit override
+        case 'on': 
+        default: return "url('#edge-refraction-only')";
+    }
+}
+
+function applyGlassEffects() {
+    // 1. Get Mode (Migration Logic)
+    let mode = localStorage.getItem('glassEffectsMode');
+    if (!mode) {
+        // Migrate old boolean setting
+        const oldSetting = localStorage.getItem('glassEffectsEnabled');
+        if (oldSetting === 'false') mode = 'frosted'; // Old behavior for disabled was frosted
+        else mode = 'on';
+        localStorage.setItem('glassEffectsMode', mode);
+        localStorage.removeItem('glassEffectsEnabled');
+    }
+
+    const root = document.documentElement;
+    const filterValue = getGlassFilterValue(mode);
+
+    // 2. Apply to Host
+    root.style.setProperty('--edge-refraction-filter', filterValue);
+    root.classList.toggle('trans-off', mode === 'off');
+
+    // 3. Broadcast to Gurapps
+    const iframes = document.querySelectorAll('iframe[data-gurasuraisu-iframe]');
+    iframes.forEach(iframe => {
+        if (iframe.contentWindow) {
+            const targetOrigin = getOriginFromUrl(iframe.src);
+            iframe.contentWindow.postMessage({
+                type: 'glassEffectsUpdate',
+                value: filterValue, // Send the raw CSS value
+                mode: mode
+            }, targetOrigin);
+        }
+    });
+}

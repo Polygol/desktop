@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script>
+        (function () {
+          const onKeyDown = (e) => {
+            if (e.code === 'F12' && !window.location.pathname.includes('/recovery/')) {
+              console.log('F12 detected. Redirecting to Safe Mode...');
+              window.onbeforeunload = null;
+              window.location.href = '/recovery/index.html';
+            }
+          };
+        
+          const onBootHelpClick = (e) => {
+            if (!window.location.pathname.includes('/recovery/')) {
+              console.log('.boot-help clicked. Redirecting to Safe Mode...');
+              window.onbeforeunload = null;
+              window.location.href = '/recovery/index.html';
+            }
+          };
+        
+          // Attach F12 recovery shortcut
+          window.addEventListener('keydown', onKeyDown, { capture: true });
+        
+          // Wait until DOM is ready before looking for `.boot-help`
+          document.addEventListener('DOMContentLoaded', () => {
+            const helpButton = document.querySelector('.boot-help');
+            if (helpButton) {
+              helpButton.addEventListener('click', onBootHelpClick, { once: true });
+            }
+          });
+        })();
+    </script>
+    <link rel="icon" href="assets/img/favi/regular.png" type="image/png">
+    <meta charset="UTF-8">
+    <meta name="description" content="Polygol Desktop is a mouse and keyboard focused desktop extension for running Actions on files, productivity tasks, and connected workflows.">
+    <meta name="keywords" content="Polygol, smart home, customizable dashboard, UI design, technology, app management, smart control, personalized experience, open source, free, private">
+    <meta name="author" content="kirbIndustries">
+    <meta property="og:title" content="Polygol Desktop — Action workspace extension">
+    <meta property="og:description" content="A host-OS extension for file Actions, connectivity, and desktop workflows.">
+    <meta property="og:image" content="https://polygol.github.io/assets/marketing/hero2.png">
+    <meta property="og:url" content="https://polygol.github.io/">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Polygol Desktop — Action workspace extension">
+    <meta name="twitter:description" content="Polygol Desktop extends your host OS with windows, Actions, and desktop-first workflows.">
+    <meta name="twitter:image" content="https://polygol.github.io/assets/marketing/hero2.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <link rel="manifest" href="/manifest.json">
+    <script src="js/lang.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/modern-screenshot@4.6.8/dist/index.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/color-thief/2.3.0/color-thief.umd.js"></script>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/"
+        }
+      }
+    </script>
+    <script type="module">
+        import { joinRoom, selfId } from 'https://esm.sh/trystero@0.15.1/torrent';
+        window.Trystero = { joinRoom, selfId };
+        window.dispatchEvent(new Event('trystero-ready'));
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <meta name="theme-color" content="#1c1c1c">
+    <title>Polygol Desktop</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/suncalc@1.9.0/suncalc.min.js"></script>
+    <script src="js/waves.js" defer></script>
+    <script>
+        // Boot
+        
+        (async function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const bootState = urlParams.get('s');
+            const hasSetup = localStorage.getItem('hasVisitedBefore') === 'true';
+            const isMobile = /Android|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            const hasAnyParams = window.location.search.length > 0;
+
+            // Handle Boot Commands (?s=...)
+            if (bootState) {
+                console.log(`[Boot] State detected: ${bootState}`);
+                
+                if (bootState === 'oobe') {
+                    // Force Setup
+                    localStorage.removeItem('hasVisitedBefore');
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                } 
+                else if (bootState === 'nooobe') {
+                    // Skip Setup
+                    localStorage.setItem('hasVisitedBefore', 'true');
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                } 
+                else if (bootState === 'manage') {
+                    // Store URL for processing in index.js (to allow UI prompts)
+                    const scriptUrl = urlParams.get('url');
+                    if (scriptUrl) {
+                        window.pendingManageUrl = scriptUrl;
+                    }
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                }
+                else {
+                    // Generic Case: ?s=[AppName] -> Open App
+                    // We implicitly mark setup as done to access the app
+                    localStorage.setItem('hasVisitedBefore', 'true');
+                    // Store the requested app name globally for index.js to pick up later
+                    window.pendingBootApp = bootState;
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                }
+            }
+        })();
+
+        let FF_FOUC_FIX;
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => {
+                        console.log('ServiceWorker registered:', registration);
+                    })
+                    .catch(error => {
+                        console.log('ServiceWorker registration failed:', error);
+                    });
+            });
+        }
+    
+        // Show a message if loading is slow
+        setTimeout(() => {
+            const loadingScreen = document.getElementById('loading-screen');
+            const bootHelp = document.getElementById('boot-help');
+            if (loadingScreen && bootHelp) { // Check if loading is still happening
+                bootHelp.innerHTML = `
+                    Click here to open recovery.
+                `;
+            }
+        }, 10000); // 10 seconds
+    
+        // Catch crashes during load
+        window.polygolHasCrashed = false; // Global crash flag
+        window.onerror = function(message, source, lineno, colno, error) {
+            const loadingScreen = document.getElementById('loading-screen');
+            if (loadingScreen) {
+                window.polygolHasCrashed = true; // Set flag to prevent onload from hiding this
+    
+                // Force the loading screen to be visible and stop animations
+                loadingScreen.classList.remove('hidden');
+                loadingScreen.style.opacity = '1';
+                loadingScreen.style.transition = 'none';
+                loadingScreen.innerHTML = '';
+                loadingScreen.style.gap = '20px';
+    
+                const errorContainer = document.createElement('div');
+                errorContainer.style.textAlign = 'center';
+                errorContainer.style.fontFamily = 'monospace';
+                errorContainer.style.maxWidth = '90%';
+    
+                const errorMessage = error ? `${error.name}: ${error.message}` : message;
+    
+                errorContainer.innerHTML = `
+                    <h2 style="color: var(--text-color); font-family: 'Inter', sans-serif; margin-bottom: 20px;">
+                        Polygol cannot load.<br>
+                        Polygolを読み込めません。<br>
+                        Polygol kann nicht geladen werden.<br>
+                        Polygol no se puede cargar.<br>
+                        Polygol을 로드할 수 없습니다.<br>
+                        Polygol 无法加载。
+                    </h2>
+                    <pre style="color: #ff8a80; background: #222; padding: 10px; border-radius: 18px;">${errorMessage}</pre>
+                    <p style="color: var(--text-color); font-family: 'Inter', sans-serif; margin-top: 20px;">
+                        Open Recovery Mode at <a href="/recovery/" style="color: #82b1ff;">https://polygol.github.io/recovery/</a><br>
+                        Report this to our GitHub. <a href="https://github.com/Polygol/polygol.github.io/issues" style="color: #82b1ff;">https://github.com/Polygol/polygol.github.io/issues</a>
+                    </p>
+                `;
+
+                // Create Continue Anyway button
+                const continueButton = document.createElement('button');
+                continueButton.textContent = 'Continue Anyway';
+                continueButton.style.marginTop = '20px';
+                continueButton.style.padding = '10px 20px';
+                continueButton.style.fontSize = '16px';
+                continueButton.style.backgroundColor = 'var(--accent)';
+                continueButton.style.color = 'var(--background-color)';
+                continueButton.style.border = 'none';
+                continueButton.style.borderRadius = '50px';
+                continueButton.style.cursor = 'pointer';
+        
+                // Add click event to remove the loading screen
+                continueButton.addEventListener('click', () => {
+                    loadingScreen.style.opacity = '0';
+                    setTimeout(() => {
+                        loadingScreen.remove(); // Remove the loading screen from the DOM after fade-out
+                    }, 1000); // Match the fade-out time
+        
+                    // Optional: Handle any other recovery process if necessary
+                });
+        
+                // Append the error message and button to the loading screen
+                loadingScreen.appendChild(errorContainer);
+                loadingScreen.appendChild(continueButton);
+                
+                // Do not suppress default browser error handler
+            }
+        };
+
+        if ('locks' in navigator) {
+            navigator.locks.request('polygol_instance', { ifAvailable: true }, async (lock) => {
+                if (!lock) {
+                    // Lock is held by another tab. Stop execution and show error.
+                    document.documentElement.innerHTML = '';
+                    document.body.style.cssText = "margin:0;padding:0;display:flex;height:100vh;justify-content:center;align-items:center;background:#000;color:#fff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;";
+                    document.body.innerHTML = "<div style='text-align:center;'><h1>Polygol is running</h1><p>Please use the existing tab.</p></div>";
+                    throw new Error("Polygol is already running in another tab.");
+                }
+                // Hold the lock for the lifetime of this tab
+                return new Promise(() => {}); 
+            });
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,0">
+</head>
+<body>
+    <div id="loading-screen" class="loading-overlay">
+        <svg class="loading-spinner" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="width: 72px; height: 72px;">
+            <rect width="100%" height="100%" fill="var(--accent)" stroke="none" class="loading-spinner-ind" />
+        </svg>
+        <div id="boot-help" class="boot-help"></div>
+    </div>
+    
+    <svg style="display: none">
+        <filter id="edge-refraction-only" color-interpolation-filters="linearRGB" color-rendering="optimizeSpeed">
+            <feComposite operator="out"></feComposite>
+            <feComposite result="distMap"></feComposite>
+            <feDisplacementMap in="SourceGraphic" scale="15" result="pass1"></feDisplacementMap>
+            <feDisplacementMap in="SourceGraphic" scale="-15" in2="distMap"></feDisplacementMap>
+            <feBlend mode="darken" result="blended_image" in="pass1"></feBlend>
+            <feComponentTransfer in="blended_image">
+                <feFuncA slope="0.9" type="linear"></feFuncA>
+            </feComponentTransfer>
+        </filter>
+    </svg>
+
+    <noscript>You need to enable JavaScript to run Polygol.<br>Polygolを実行するにはJavaScriptを有効にする必要があります。<br>Sie müssen JavaScript aktivieren, um Polygol auszuführen.<br>Necesitas habilitar JavaScript para ejecutar Polygol.<br>Polygol를 실행하려면 JavaScript를 활성화해야 합니다.<br>您需要启用JavaScript才能运行Polygol。</noscript>
+    
+    <div id="top-menu-bar">
+        <div class="menu-left">
+            <div class="menu-item logo-menu">
+                <svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><circle cx="6.25" cy="7.5" r="2" fill="currentColor"/><circle cx="13.75" cy="7.5" r="2" fill="currentColor"/><path d="M3.75 12.5q6.25 5 12.5 0" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div id="current-app-menu-label" class="menu-item">Desktop</div>
+            <div id="dynamic-app-menus" style="display:flex; height:100%; align-items: center;"></div>
+            <div class="menu-item actions-menu" id="top-actions-menu" style="display: none;">Actions</div>
+        </div>
+        <div class="menu-right">
+            <div id="top-status-icons" style="display:flex; gap:10px; align-items:center;"><div id="status-indicator"></div></div>
+            <div id="dynamic-area" style="opacity: 0; scale: 0.9;">
+                <div id="activity-island"></div>
+                <div id="persistent-clock" class="persistent-clock"></div>
+            </div>
+        </div>
+    </div>
+    <div id="logo-menu-dropdown" class="menu-dropdown"></div>
+    <div id="app-menus-dropdown" class="menu-dropdown"></div>
+    <div id="actions-menu-dropdown" class="menu-dropdown"></div>
+
+    <div id="control-strip" class="control-strip">
+        <div class="cs-modules">
+            <button class="cs-btn" id="cs-search" onclick="openSpotlight();"><span class="material-symbols-rounded">search</span></button>
+        </div>
+        <div class="cs-apps" id="cs-apps-list"></div>
+    </div>
+
+    <div id="control-gesture-pane" style="display:none;"></div>
+
+    <div id="depth-layer"></div>
+    
+    <div id="environment-layer"></div>
+    <div id="time-of-day-overlay"></div> 
+
+    <div id="wallpaper-switcher-overlay" class="wallpaper-switcher-overlay">
+        <div class="switcher-scroll-track" id="switcher-track">
+            <div class="switcher-scroll-thumb" id="switcher-thumb"></div>
+        </div>
+        <div class="wallpaper-cards-container" id="wallpaper-cards-container">
+            <!-- Cards injected via JS -->
+        </div>
+        <button id="switcher-add-btn" class="switcher-add-btn">
+            <span class="material-symbols-rounded">add</span> Add wallpaper
+        </button>
+    </div>
+
+    <!-- Dedicated Edit Mode UI -->
+    <div id="edit-mode-ui" style="display: none; opacity: 0; transition: opacity 0.3s ease; position: fixed; inset: 0; z-index: 9998; pointer-events: none;">
+        <div class="edit-top-bar" style="position: absolute; top: 25px; left: 25px; right: 25px; pointer-events: auto; display: flex; justify-content: space-between; align-items: center; z-index: 9999;">
+            <div style="margin-left: 10px; font-weight: 600; font-family: 'Open Runde', sans-serif; text-shadow: 0 2px 10px rgba(0,0,0,0.5);">Edit desktop</div>
+            <div style="display: flex; gap: 10px;">
+                <button id="edit-replace-bg-btn" class="btn-qc" style="width: auto; padding: 0 14px; border-radius: 30px; font-weight: 500; font-size: 14px;">
+                    <span class="material-symbols-rounded" style="font-size: 18px; margin-right: 6px;">filter_vintage</span> Replace
+                </button>
+                <button id="edit-done-btn" class="btn-qc" style="width: auto; padding: 0 14px; border-radius: 30px; background: var(--accent); color: var(--background-color); font-weight: 600; font-size: 14px;">Done</button>
+            </div>
+        </div>
+
+        <div id="edit-bottom-sheet" class="sheet-container" style="pointer-events: auto; height: auto; max-height: 60%; transition: transform 0.4s cubic-bezier(0.2, 1.3, 0.64, 1); transform: translateY(100%) translateX(-50%); bottom: 0; left: 50%; width: 100%; max-width: 800px; position: absolute;">
+            <div class="sheet-handle" id="edit-sheet-handle"></div>
+            <h3 id="edit-sheet-title" style="margin: 0 0 15px 0; text-align: center; font-family: 'Open Runde', sans-serif; font-weight: 600;">Settings</h3>
+            <div id="edit-sheet-content" style="overflow-y: auto; padding: 0 20px 20px; display: flex; flex-direction: column; gap: 20px; scrollbar-width: none;">
+                
+                <div id="edit-group-clock" style="display: none;">
+                    <div class="settings-grid">
+                        <div class="setting-item" id="setting-style">
+                            <div class="setting-icon-bg"><span class="material-symbols-rounded">match_case</span></div>
+                            <span class="setting-label" data-lang-key="STYLE">Style</span>
+                        </div>
+                        <div class="setting-item active" id="setting-clock-color">
+                            <div class="setting-icon-bg"><span class="material-symbols-rounded">colorize</span></div>
+                            <span class="setting-label" data-lang-key="CLOCK_COLOR">Color</span>
+                        </div>
+                        <div class="setting-item" id="setting-clock-shadow">
+                            <div class="setting-icon-bg"><span class="material-symbols-rounded">text_select_move_down</span></div>
+                            <span class="setting-label" data-lang-key="SHADOW">Shadow</span>
+                        </div>
+                        <div class="setting-item" id="setting-weight">
+                            <div class="setting-icon-bg"><span class="material-symbols-rounded">line_weight</span></div>
+                            <span class="setting-label" data-lang-key="WEIGHT">Weight</span>
+                        </div>
+                        <div class="setting-item active" id="setting-roundness">
+                            <div class="setting-icon-bg"><span class="material-symbols-rounded">circles</span></div>
+                            <span class="setting-label">Roundness</span>
+                        </div>
+                        <div class="setting-item" id="setting-clock-stroke">
+                            <div class="setting-icon-bg"><span class="material-symbols-rounded">border_color</span></div>
+                            <span class="setting-label">Outline</span>
+                        </div>
+                        <div class="setting-item" id="setting-italic">
+                            <div class="setting-icon-bg"><span class="material-symbols-rounded">format_italic</span></div>
+                            <span class="setting-label">Italic</span>
+                        </div>
+                        <div class="setting-item" id="setting-blend-mode">
+                            <div class="setting-icon-bg"><span class="material-symbols-rounded">difference</span></div>
+                            <span class="setting-label">Blend Mode</span>
+                        </div>
+                        <div class="setting-item active" id="setting-clock-stack">
+                            <div class="setting-icon-bg"><span class="material-symbols-rounded">farsight_digital</span></div>
+                            <span class="setting-label" data-lang-key="CLOCK_STACK">Clock Stack</span>
+                        </div>
+                        <div class="setting-item active" id="setting-position">
+                            <div class="setting-icon-bg"><span class="material-symbols-rounded">open_with</span></div>
+                            <span class="setting-label" data-lang-key="ALIGNMENT">Alignment</span>
+                        </div>
+                        <div class="setting-item active" id="setting-clock-spacing">
+                            <div class="setting-icon-bg"><span class="material-symbols-rounded">space_bar</span></div>
+                            <span class="setting-label">Spacing</span>
+                        </div>
+                        <div class="setting-item active" id="setting-size">
+                            <div class="setting-icon-bg"><span class="material-symbols-rounded">measuring_tape</span></div>
+                            <span class="setting-label">Clock Size</span>
+                        </div>
+                        <div class="setting-item" id="setting-seconds">
+                            <div class="setting-icon-bg"><span class="material-symbols-rounded">timer_10_select</span></div>
+                            <span class="setting-label" data-lang-key="SECONDS">Seconds</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="edit-group-date" style="display: none;">
+                    <div class="settings-grid">
+                        <div class="setting-item active" id="setting-date-size">
+                            <div class="setting-icon-bg"><span class="material-symbols-rounded">calendar_view_day</span></div>
+                            <span class="setting-label">Date Size</span>
+                        </div>
+                        <div class="setting-item" id="setting-text-case">
+                            <div class="setting-icon-bg"><span class="material-symbols-rounded">text_fields</span></div>
+                            <span class="setting-label">Case</span>
+                        </div>
+                        <div class="setting-item" id="setting-date-offset">
+                            <div class="setting-icon-bg"><span class="material-symbols-rounded">vertical_align_center</span></div>
+                            <span class="setting-label">Date Offset</span>
+                        </div>
+                        <div class="setting-item" id="setting-format">
+                            <div class="setting-icon-bg"><span class="material-symbols-rounded">edit_calendar</span></div>
+                            <span class="setting-label" data-lang-key="FORMAT">Format</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="edit-group-background" style="display: none;">
+                    <h4 style="margin: 0 0 10px 0; font-size: 14px; opacity: 0.7;">Atmosphere</h4>
+                    <div class="settings-grid">
+                        <div class="setting-item" id="setting-wallpaper-blur">
+                            <div class="setting-icon-bg"><span class="material-symbols-rounded">motion_mode</span></div>
+                            <span class="setting-label" data-lang-key="BLUR">Blur</span>
+                        </div>
+                        <div class="setting-item" id="setting-wallpaper-brightness">
+                            <div class="setting-icon-bg"><span class="material-symbols-rounded">wb_sunny</span></div>
+                            <span class="setting-label" data-lang-key="BRIGHTNESS">Brightness</span>
+                        </div>
+                        <div class="setting-item" id="setting-wallpaper-contrast-fx">
+                            <div class="setting-icon-bg"><span class="material-symbols-rounded">opacity</span></div>
+                            <span class="setting-label" data-lang-key="CONTRAST_FX">Clarity</span>
+                        </div>
+                        <div class="setting-item" id="setting-wallpaper-saturate">
+                            <div class="setting-icon-bg"><span class="material-symbols-rounded">tonality</span></div>
+                            <span class="setting-label">Saturation</span>
+                        </div>
+                        <div class="setting-item" id="setting-wallpaper-hue">
+                            <div class="setting-icon-bg"><span class="material-symbols-rounded">palette</span></div>
+                            <span class="setting-label">Hue</span>
+                        </div>
+                        <div class="setting-item" id="setting-wallpaper-vignette">
+                            <div class="setting-icon-bg"><span class="material-symbols-rounded">lens_blur</span></div>
+                            <span class="setting-label">Vignette</span>
+                        </div>
+                        <div class="setting-item" id="setting-live-environment">
+                            <div class="setting-icon-bg"><span class="material-symbols-rounded">routine</span></div>
+                            <span class="setting-label">Live Scene</span>
+                        </div>
+                    </div>
+                    <h4 style="margin: 15px 0 10px 0; font-size: 14px; opacity: 0.7;">Other</h4>
+                    <div class="settings-grid">
+                        <div class="setting-item" id="setting-widgets">
+                            <div class="setting-icon-bg"><span class="material-symbols-rounded">widget_menu</span></div>
+                            <span class="setting-label" data-lang-key="WIDGETS">Widgets</span>
+                        </div>
+                        <div class="setting-item" id="setting-weather">
+                            <div class="setting-icon-bg"><span class="material-symbols-rounded">partly_cloudy_day</span></div>
+                            <span class="setting-label" data-lang-key="WEATHER">Weather</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="home-activity-container" class="pos-bl" style="display: none;">
+        <div id="home-media-widget" class="home-media-widget home-activity-item">
+            <img id="home-media-art" src="" alt="Album Art">
+            <div class="home-media-info">
+                <div id="home-media-title" class="title"></div>
+                <div id="home-media-artist" class="artist"></div>
+            </div>
+            
+            <button id="home-media-play-pause">
+                <span class="material-symbols-rounded" style="font-size: 28px; font-variation-settings: 'FILL' 1, 'wght' 700, 'GRAD' 0, 'opsz' 48;">play_arrow</span>
+            </button>
+            
+            <div class="home-media-controls">
+                <button id="home-media-prev"><span class="material-symbols-rounded">skip_previous</span></button>
+                <div id="home-media-progress-bar">
+                    <div style="display: flex;flex-direction: row;height: 16px;align-items: center;">
+                        <div id="home-media-progress"></div>
+                        <div style="z-index: 4;width: 6px;background-color: var(--text-color);border-radius: 16px;margin-right: 4px;flex-shrink: 0;height: 16px;margin-left: -6px;"></div>
+                        <div style="background: var(--search-background);width: 100%;height: 6px;border-radius: 10px;box-shadow: var(--sun-shadow);border: 1px solid var(--glass-border);"></div>
+                    </div>
+                </div>
+                <button id="home-media-next"><span class="material-symbols-rounded">skip_next</span></button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container" style="opacity: 0; scale: 0.9;">
+        <div class="info">
+            <div class="date" id="date"></div>
+        </div>
+        <div class="clock" id="clock"></div>
+        <div class="clockwidgets">
+            <div class="weather-widget" id="weather">
+                <span class="temperature" id="temperature"></span>
+                <span class="weather-icon" id="weather-icon">
+                    <svg class="loading-spinner" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="100%" height="100%" fill="currentColor" stroke="none" class="loading-spinner-ind" />
+                    </svg>
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <div id="widget-grid" class="widget-grid" style="opacity: 0; scale: 0.9;"></div>
+    
+    <div id="donburi-container" class="system-overlay" style="display: none; transform: translateY(-100%);">
+        <iframe src="assets/gurapp/intl/donburi/index.html" data-gurasuraisu-iframe="true" data-app-id="Donburi"></iframe>
+    </div>
+
+    <div id="customizeModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="controls-container">
+                <h3 style="margin: 0;white-space: nowrap;overflow: hidden;text-overflow: ellipsis;max-width: calc(clamp(280px, 90%, 500px) - 30px);">LANG_CONTROLS</h3>
+                <div style="display: flex; gap: 12px;">
+                    <!-- Network Status Indicator -->
+                    <div id="network-status-indicator" class="status-qc">
+                        <span class="material-symbols-rounded" style="font-size: 20px;">signal_cellular_null</span>
+                    </div>
+                    <!-- Battery Status Indicator -->
+                    <div id="battery-status-indicator" class="status-qc">
+                        <span class="material-symbols-rounded" style="font-size: 26px; font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 0, 'opsz' 24;">battery_android_question</span>
+                    </div>
+                    <div id="active-peers-container" style="display: none; align-items: center;"></div>
+                    <button id="fullscreen-btn" class="btn-qc" onclick="goFullscreen()">
+                        <span class="material-symbols-rounded" style="font-size: 18px;">expand_content</span>
+                    </button>
+                    <button id="blackout-btn" class="btn-qc" style="background-color: var(--tonal);">
+                        <span class="material-symbols-rounded" style="font-size: 18px; color: var(--background-color);">power_settings_new</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="quick-controls">
+                <div class="qcontrol-item" id="silent_switch_qc">
+                    <span class="material-symbols-rounded">notifications_off</span>
+                    <span class="qc-label">LANG_SILENT</span>
+                    <input type="checkbox" id="silent_switch" class="qc-switch" hidden>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <div class="qcontrol-item" id="temp_control_qc">
+                        <span class="material-symbols-rounded" style="margin: 0;">thermometer</span>
+                        <span class="qc-label">LANG_TONE</span>
+                        <span id="thermostat-value" style="display: none;">0</span>
+                    </div>
+                    <div class="qcontrol-item" id="night-mode-qc">
+                        <span class="material-symbols-rounded" style="margin: 0;">bedtime</span>
+                    </div>
+                </div>
+                <div class="qcontrol-item" id="minimal_mode_qc">
+                    <span class="material-symbols-rounded">filter_tilt_shift</span>
+                    <span class="qc-label">LANG_MINIMAL</span>
+                    <input type="checkbox" id="focus-switch" class="qc-switch" hidden>
+                </div>
+                <div class="qcontrol-item" id="light_mode_qc">
+                    <span class="material-symbols-rounded">contrast</span>
+                    <span class="qc-label">LANG_DAYLIGHT</span>
+                    <input type="checkbox" id="theme-switch" class="qc-switch" hidden>
+                </div>
+            </div>
+
+            <div class="qc-sliders">
+                <div class="brightness-slider-container" style="border-radius: 28px 27px 10px 10px;">
+                    <label for="brightness-control" class="cust-label">
+                        <span class="material-symbols-rounded" style="font-size: 20px;">sunny</span>
+                    </label>
+                    <input type="range" min="20" max="100" value="100" class="brightness-slider" id="brightness-control">
+                </div>
+                <div class="volume-slider-container" style="border-radius: 10px 10px 28px 28px;">
+                    <label for="volume-control" class="cust-label">
+                        <span class="material-symbols-rounded" style="font-size: 20px;">volume_up</span>
+                    </label>
+                    <input type="range" min="0" max="100" value="100" class="volume-slider" id="volume-control">
+                    <button id="sound-opt-btn" class="btn-qc" style="background-color: transparent;margin-right: 4px;backdrop-filter: none;box-shadow: none;border: none;">
+                        <span class="material-symbols-rounded" style="font-size: 18px;">discover_tune</span>
+                    </button>
+                </div>
+            </div>
+
+            <div id="media-session-widget" class="media-widget" style="display: none;">
+                <div style="background: var(--background-color-tr);box-shadow: var(--sun-shadow);border-radius: inherit;corner-shape: inherit;width: 100%;height: 100%;position: fixed;left: 0;top: 0;"> </div>
+                <img id="media-widget-art" src="" alt="Album Art">
+                <div class="app-icon-img">
+                    <img id="media-widget-app-icon" src="" class="media-widget-app-icon" style="display: none;" />
+                </div>
+                <div class="media-widget-device">
+                    <span class="material-symbols-rounded">volume_up</span>
+                    <span>This device</span>
+                </div>
+                <div class="media-widget-info">
+                    <div id="media-widget-title" class="title"></div>
+                    <div id="media-widget-artist" class="artist"></div>
+                </div>
+                <button id="media-widget-play-pause"><span class="material-symbols-rounded" style="font-size: 28px; font-variation-settings: 'FILL' 1, 'wght' 700, 'GRAD' 0, 'opsz' 48;">play_arrow</span></button>
+                <div class="media-widget-progress-container">
+                    <span id="media-widget-current-time" class="media-widget-time">0:00</span>
+                    <span id="media-widget-duration" class="media-widget-time">0:00</span>
+                </div>
+                <div class="media-widget-controls">
+                    <button id="media-widget-prev"><span class="material-symbols-rounded">skip_previous</span></button>
+                    <div id="media-widget-progress-bar">
+                        <div style="display: flex;flex-direction: row;height: 16px;align-items: center;">
+                            <div id="media-widget-progress"></div>
+                            <div style="z-index: 4;width: 6px;background-color: var(--text-color);border-radius: 16px;margin-right: 4px;flex-shrink: 0;height: 16px;margin-left: -6px;"></div>
+                            <div style="background: var(--overlay-color);width: 100%;height: 6px;border-radius: 10px;backdrop-filter: var(--edge-refraction-filter) saturate(2) blur(1px);box-shadow: var(--sun-shadow);border: 1px solid var(--glass-border);"></div>
+                        </div>
+                    </div>
+                    <button id="media-widget-next"><span class="material-symbols-rounded">skip_next</span></button>
+                </div>
+            </div>
+            
+            <div class="notification-shade"></div>
+
+            <div id="kirbindustries-ads-service" style="background-color: var(--search-background);box-shadow: var(--sun-shadow);color: var(--text-color);padding: 10px 14px 10px 12px;border-radius: 35px;corner-shape: superellipse(1.5);z-index: 9999996;transition: opacity 0.5s;display: none;align-items: center;gap: 12px;border: 1px solid var(--glass-border);">
+                <div id="kirbindustries-ads-service-img" class="app-icon-img" style="width: 42px;">
+                    <img src="/desktop/assets/appicon/default.png" class="media-widget-app-icon" style="display: block;">
+                </div>
+                <div style="display: flex;flex-direction: column;gap: 4px;">
+                    <div style="display: flex;align-items: center;gap: 6px;">
+                        <span style="font-size: 12px;background: var(--accent);color: var(--background-color);padding: 2px 6px;border-radius: 12px;">Suggested</span>
+                        <span id="kirbindustries-ads-service-icon" class="material-symbols-rounded" style="font-size: 18px;">question_mark</span>
+                        <span id="kirbindustries-ads-service-header" style="font-weight: 500;font-family: 'Open Runde', 'Inter';">???</span>
+                    </div>
+                    <span id="kirbindustries-ads-service-description">???</span>
+                </div>
+                <button id="kirbindustries-ads-service-cta" class="controls-footer-button" style="margin-left: auto;padding: 10px 12px 10px 15px;display: flex;gap: 4px;">
+                    Open
+                    <span class="material-symbols-rounded" style="font-size: 18px;">arrow_outward</span>
+                </button>
+            </div>
+            <div id="app-management-info" class="app-management-info" style="display: none;">
+                <label class="cust-label" id="current-app-label">
+                    <img src="" alt="App Icon" style="width: 32px; height: 32px; border-radius: 35%; corner-shape: superellipse(1.25); object-fit: cover;">
+                    <span>App Name</span>
+                </label>
+                <div style="display: flex; gap: 12px;">
+                    <button id="app-close-btn" class="btn-qc">
+                        <span class="material-symbols-rounded" style="font-size: 18px;">close</span>
+                    </button>
+                    <button id="app-minimize-btn" class="btn-qc">
+                        <span class="material-symbols-rounded" style="font-size: 18px;">hide</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="widget-picker-drawer" class="widget-drawer">
+        <div class="widget-drawer-handle">
+            <div class="app-drawer-handle">
+                <div class="drawer-handle-bar"></div>
+            </div>
+        </div>
+        <div class="widget-drawer-header">
+            <h2>Add Widget</h2>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <button id="add-sticker-btn" class="drawer-header-button">
+                    <span class="material-symbols-rounded">sticker</span>
+                    Sticker
+                </button>
+                <label for="widget-transparent-switch" style="font-size: 14px; color: var(--text-color); cursor: pointer;">Transparency</label>
+                <input type="checkbox" id="widget-transparent-switch">
+            </div>
+        </div>
+        <div class="widget-drawer-content">
+            <div id="widget-picker-grid">
+                <!-- Available widgets will be dynamically inserted here -->
+            </div>
+        </div>
+    </div>
+    
+    <div id="wallpaper-picker-drawer" class="widget-drawer">
+        <div class="wallpaper-drawer-handle">
+            <div class="app-drawer-handle">
+                <div class="drawer-handle-bar"></div>
+            </div>
+        </div>
+        <div class="widget-drawer-header">
+            <h2 data-lang-key="WALLPAPER">Wallpaper</h2>
+            <div style="display: flex; gap: 15px;">
+                <button id="wallpaper-export-btn" class="drawer-header-button">
+                    <span class="material-symbols-rounded">ios_share</span>
+                    Export
+                </button>
+                <button id="wallpaper-submit-btn" class="drawer-header-button">
+                    <span class="material-symbols-rounded">person_raised_hand</span>
+                    Request
+                </button>
+            </div>
+        </div>
+        <div class="widget-drawer-content">
+            <div id="wallpaper-picker-grid">
+                <!-- Presets and upload option will be inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <div id="volume-mixer-popup" class="thermostat-popup">
+        <div class="thermostat-popup-content">
+            <div class="thermostat-popup-header">
+                <span class="adjust-label">App volume</span>
+            </div>
+            <div id="volume-mixer-list" style="display: flex; flex-direction: column; gap: 12px; max-height: 250px; overflow-y: auto; overflow-x: hidden; padding-right: 4px;">
+                <!-- App sliders injected here -->
+            </div>
+        </div>
+    </div>
+
+    <div id="thermostat-popup" class="thermostat-popup">
+        <div class="thermostat-popup-content">
+            <div class="thermostat-popup-header">
+                <span class="adjust-label">LANG_ADJUST</span>
+            </div>
+            <div class="thermostat-slider-container">
+                <input type="range" min="-10" max="10" value="0" class="thermostat-slider" id="thermostat-control">
+                <div id="thermostat-popup-value">0</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="applications-dropdown" style="display:none;">
+        <div id="app-grid" class="app-drawer-grid"></div>
+    </div>
+    
+    <div class="blur-overlay" id="blurOverlay"></div>
+
+    <div class="blur-overlay" id="blurOverlayControls"></div>
+
+    <div id="snap-line-v" class="snap-line snap-line-v"></div>
+    <div id="snap-line-h" class="snap-line snap-line-h"></div>
+
+    <div id="app-switcher-overlay" style="display: none;">
+        <div id="app-switcher-list"></div>
+    </div>
+
+    <div id="interaction-blocker"></div>
+    
+    <div id="system-osk-container">
+        <button id="osk-switcher-btn" class="btn-qc" style="position: absolute; top: 12px; right: 18px; display: none;">
+            <span class="material-symbols-rounded" style="font-size: 18px;">language</span>
+        </button>
+        <iframe src="assets/gurapp/intl/overlay/osk/osk.html"></iframe>
+    </div>
+
+    <div id="dialogModal" class="modal">
+        <div class="modal-content">
+            <span id="dialogIcon" class="material-symbols-rounded" style="font-size: 32px; text-align: center; margin-bottom: 18px;"></span>
+            <h2 id="dialogTitle"></h2>
+            <p id="dialogMessage"></p>
+            <div id="dialogPromptContainer" class="form-group" style="display: none;">
+                <input type="text" id="dialogInput" class="form-input" autocomplete="off">
+            </div>
+            <div id="dialogButtons" class="form-row">
+                <!-- Buttons will be injected here -->
+            </div>
+        </div>
+    </div>
+
+    <div id="hidden-controls-container" style="display: none; content-visibility: hidden;">
+        <input type="range" id="screen-curve-slider" min="0" max="50">
+        <input type="file" id="wallpaperInput" accept=".png, .jpeg, .jpg, .webp, .gif, .mp4, .guraatmos" multiple>
+        <button id="uploadButton">Add</button>
+        <input type="range" min="0" max="20" value="0" class="wallpaper-effect-slider" id="wallpaper-blur-slider">
+        <input type="range" min="50" max="150" value="100" class="wallpaper-effect-slider" id="wallpaper-brightness-slider">
+        <input type="range" min="50" max="150" value="100" class="wallpaper-effect-slider" id="wallpaper-contrast-slider">
+        <input type="range" min="20" max="100" value="100" class="weight-slider" id="weight-slider">
+        <input type="range" min="0" max="100" value="0" class="roundness-slider" id="roundness-slider">
+        <input type="range" min="-50" max="500" value="0" id="clock-size-slider">
+        <input type="range" min="-5" max="50" value="0" id="clock-spacing-slider">
+        <select id="text-case-select">
+            <option value="none">Normal</option>
+            <option value="uppercase">UPPERCASE</option>
+            <option value="lowercase">lowercase</option>
+            <option value="capitalize">Capitalize</option>
+        </select>
+        <input type="range" min="50" max="500" value="100" id="date-size-slider">
+        <input type="range" min="-50" max="100" value="0" id="date-offset-slider">
+        <div id="position-controls-popup" class="control-popup-content">
+            <div class="popup-control-row">
+                <label for="clock-pos-x-slider">X</label>
+                <input type="range" min="0" max="100" value="50" id="clock-pos-x-slider">
+            </div>
+             <div class="popup-control-row">
+                <label for="clock-pos-y-slider">Y</label>
+                <input type="range" min="0" max="100" value="50" id="clock-pos-y-slider">
+            </div>
+            <div class="popup-control-row">
+                 <label for="alignment-select">Preset</label>
+                 <select id="alignment-select">
+                    <option value="center" data-lang-key="ALIGN_CENTER">Center</option>
+                    <option value="left" data-lang-key="ALIGN_LEFT">Left</option>
+                    <option value="right" data-lang-key="ALIGN_RIGHT">Right</option>
+                </select>
+            </div>
+        </div>
+        <div id="clock-color-popup" class="control-popup-content">
+            <div class="popup-control-row">
+                <input type="radio" id="clock-off-switch" name="clock-fill-mode">
+                <label for="clock-off-switch">Off</label>
+            </div>
+            <div class="popup-control-row">
+                <input type="radio" id="clock-color-switch" name="clock-fill-mode">
+                <label for="clock-color-switch">Solid Color</label>
+                <input type="color" id="clock-color-picker">
+            </div>
+            <div class="popup-control-row">
+                <input type="radio" id="clock-gradient-switch" name="clock-fill-mode">
+                <label for="clock-gradient-switch">Gradient</label>
+                <input type="color" id="clock-gradient-color-picker">
+            </div>
+            <div class="popup-control-row">
+                <input type="radio" id="clock-glass-switch" name="clock-fill-mode">
+                <label for="clock-glass-switch">Glass</label>
+            </div>
+            <div class="popup-control-row">
+                <input type="radio" id="clock-dynamicfill-switch" name="clock-fill-mode">
+                <label for="clock-dynamicfill-switch">Dynamic</label>
+            </div>
+        </div>
+        <div id="shadow-controls-popup" class="control-popup-content">
+            <div class="popup-control-row">
+                <label for="clock-shadow-switch">Shadow</label>
+                <input type="checkbox" id="clock-shadow-switch">
+            </div>
+            <div class="popup-control-row">
+                <label for="clock-shadow-blur-slider">Blur</label>
+                <input type="range" min="0" max="50" value="10" id="clock-shadow-blur-slider">
+            </div>
+            <div class="popup-control-row">
+                <label for="clock-shadow-color-picker">Color</label>
+                <input type="color" id="clock-shadow-color-picker">
+            </div>
+        </div>
+        <div id="stroke-controls-popup" class="control-popup-content">
+            <div class="popup-control-row">
+                <label>Width</label>
+                <input type="range" id="clock-stroke-width-slider" min="0" max="10" value="0">
+            </div>
+            <div class="popup-control-row">
+                <label>Color</label>
+                <input type="color" id="clock-stroke-color-picker" value="#000000">
+            </div>
+        </div>
+        <div id="format-popup" class="control-popup-content">
+            <div class="popup-control-row" style="flex-direction: column; align-items: flex-start; gap: 5px;">
+                <label for="date-format-input" data-lang-key="DATE_FORMAT">Date Format</label>
+                <input type="text" id="date-format-input" placeholder="e.g., dddd, MMMM D" style="width: 100%; box-sizing: border-box; padding: 8px 12px; border-radius: 12px; background: var(--transparent-color); border: 1px solid var(--glass-border); color: var(--text-color);">
+            </div>
+            <div class="popup-control-row" style="flex-direction: column; align-items: flex-start; gap: 5px;">
+                <label for="clock-format-input" data-lang-key="CLOCK_FORMAT">Clock Format</label>
+                <input type="text" id="clock-format-input" placeholder="e.g., HH:mm:ss" style="width: 100%; box-sizing: border-box; padding: 8px 12px; border-radius: 12px; background: var(--transparent-color); border: 1px solid var(--glass-border); color: var(--text-color);">
+            </div>
+            <div style="font-size: 11px; color: var(--secondary-text-color); margin-top: 5px; line-height: 1.4;">
+                <b>Variables:</b> $(media.title)$, $(media.artist)$, $(weather.degrees)$, $(weather.icon)$, $(separator.pipe)$, $(separator.dot)$, $(greeting.time)$, $(greeting.personal)$, $(smart)$<br>
+            </div>
+        </div>
+        <input type="checkbox" id="seconds-switch" checked>
+        <input type="checkbox" id="clock-stack-switch">
+        <input type="checkbox" id="depth-effect-switch">
+        <input type="checkbox" id="live-environment-switch">
+        <input type="checkbox" id="clock-italic-switch">
+        <select id="clock-blend-mode-select">
+            <option value="normal">Normal</option>
+            <option value="overlay">Overlay</option>
+            <option value="difference">Difference</option>
+            <option value="exclusion">Exclusion</option>
+            <option value="color-dodge">Color Dodge</option>
+        </select>
+        <input type="range" class="wallpaper-effect-slider" id="wallpaper-saturate-slider" min="0" max="300" value="100">
+        <input type="range" class="wallpaper-effect-slider" id="wallpaper-hue-slider" min="-180" max="180" value="0">
+        <input type="range" class="wallpaper-effect-slider" id="wallpaper-vignette-slider" min="0" max="100" value="0">
+        <select id="font-select">
+            <option value="Inter" data-lang="Default">LANG_DEFAULT</option>
+            <option value="Bricolage Grotesque" data-lang="Work">LANG_WORK</option>
+            <option value="DynaPuff" data-lang="Puffy">LANG_PUFFY</option>
+            <option value="Domine" data-lang="Classic">LANG_CLASSIC</option>
+            <option value="Climate Crisis" data-lang="Strokes">LANG_STROKES</option>
+            <option value="JetBrains Mono" data-lang="Mono">LANG_MONO</option>
+            <option value="DotGothic16" data-lang="Pixel">LANG_PIXEL</option>
+            <option value="Playpen Sans" data-lang="Written">LANG_WRITTEN</option>
+            <option value="Jaro" data-lang="Raised">LANG_RAISED</option>
+            <option value="Doto" data-lang="Dot">LANG_DOT</option>
+            <option value="Nunito" data-lang="Round">LANG_ROUND</option>
+        </select>
+        <input type="checkbox" id="weather-switch" checked>
+        <input type="checkbox" id="gurapps-switch" checked>
+        <input type="checkbox" id="tint-colors-switch" checked>
+        <input type="checkbox" id="animation-switch" checked>
+        <input type="checkbox" id="contrast-switch">
+        <select id="glass-effects-mode">
+            <option value="on">Liquid</option>
+            <option value="focused">Focused</option>
+            <option value="frosted">Frosted</option>
+            <option value="off">Off</option>
+        </select>
+        <input type="checkbox" id="hour-switch">
+        <input type="checkbox" id="ai-switch">
+        <input type="checkbox" id="one-button-nav-switch">
+        <input type="checkbox" id="persistent-indicator-switch">
+        <input type="checkbox" id="dock-pinned-switch">
+        <select id="wake-lock-mode-select">
+            <option value="modern">Modern</option>
+            <option value="legacy">Legacy</option>
+            <option value="disabled">Disabled</option>
+        </select>
+        <select id="language-switcher">
+            <option value="EN">English</option>
+            <option value="JP">日本語</option>
+            <option value="DE">Deutsch</option>
+            <option value="ES">Español</option>
+            <option value="KO">한국어</option>
+            <option value="ZH">中文</option>
+        </select>
+        <select id="ui-sound-mode">
+            <option value="silent_off">Off when Silent (Default)</option>
+            <option value="always_off">Always Off</option>
+            <option value="always_on">Always On</option>
+        </select>
+        <input type="checkbox" id="gurapp-sounds-switch" checked> 
+        <button id="resetButton">RESET_BTN</button>
+        <div id="sticker-settings-popup" class="control-popup-content">
+            <h4 style="margin: 0 0 10px 0; text-align: center;">New Sticker</h4>
+            
+            <input type="file" id="sticker-file-input" accept="image/png, image/jpeg, image/webp, image/gif" style="display: none;">
+            <button id="sticker-select-file-btn" class="button-dialog" style="margin-bottom: 10px;">Photo</button>
+            
+            <div class="popup-control-row">
+                <label for="sticker-border-switch">Border</label>
+                <input type="checkbox" id="sticker-border-switch">
+            </div>
+            
+            <div id="sticker-border-options" style="display: none; flex-direction: column; gap: 10px;">
+                <div class="popup-control-row">
+                    <label>Color</label>
+                    <input type="color" id="sticker-border-color" value="#ffffff">
+                </div>
+                <div class="popup-control-row">
+                    <label>Width</label>
+                    <input type="range" id="sticker-border-width" min="1" max="10" value="3">
+                </div>
+            </div>
+    
+            <button id="sticker-create-btn" class="button-dialog primary" style="margin-top: 10px;">Create Sticker</button>
+        </div>
+    </div>
+
+    <div id="screen-curve-overlay"></div>
+
+    <div id="app-switcher-ui" class="wallpaper-switcher-overlay">
+        <div class="wallpaper-cards-container" id="app-cards-container">
+            <!-- Cards injected via JS -->
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT -->
+    <!-- Core Utilities -->
+    <script src="js/core/storage.js"></script>
+    <script src="js/core/audio.js"></script>
+    <script src="js/core/a11y.js"></script>
+    <script src="js/core/performance.js"></script>
+    <script src="js/core/system.js"></script>
+    <script src="js/core/dialogs.js"></script>
+    <script src="js/core/files.js"></script>
+    <script src="js/core/power.js"></script>
+    <script src="js/core/first-setup.js"></script>
+    <script src="js/core/sys-connect-waves.js"></script>
+    <!-- UI Components -->
+    <script src="js/ui/theme.js"></script>
+    <script src="js/ui/modes.js"></script>
+    <script src="js/ui/notifications.js"></script>
+    <script src="js/ui/clock-weather.js"></script>
+    <script src="js/ui/environment.js"></script>
+    <script src="js/ui/wallpaper.js"></script>
+    <script src="js/ui/widgets.js"></script>
+    <script src="js/ui/spotlight.js"></script>
+    <script src="js/ui/settings.js"></script>
+    <script src="js/ui/osk.js"></script>
+    <script src="js/ui/physical-keyboard.js"></script>
+    <script src="js/ui/browser-chrome.js"></script>
+    <script src="js/ui/donburi.js"></script>
+    <script src="js/ui/main-ui.js"></script>
+    <!-- App & Window Management -->
+    <script src="js/apps/app-switcher.js"></script>
+    <script src="js/apps/window-manager.js"></script>
+    <script src="js/apps/media-session.js"></script>
+    <script src="js/apps/live-activities.js"></script>
+    <script src="js/apps/api.js"></script>
+    <!-- Boot + Other -->
+    <script src="js/index.js"></script>
+    <script src="js/core/boot.js"></script>
+    <script src="js/kirbservices.js"></script>
+</body>
+</html>

@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Files</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,700,1,0" />
+    <script src="/desktop/assets/gurapp/api/gurasuraisu-api.js" defer></script>
+    <script src="assets/gurapp/api/actions-api.js" defer></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+            user-select: none;
+        }
+        
+        body {
+            background-color: var(--background-color-tr);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* --- Tabs Bar --- */
+        .tab-bar {
+            display: flex;
+            padding: 8px;
+            gap: 4px;
+            overflow-x: auto;
+            scrollbar-width: none;
+            flex-shrink: 0;
+        }
+        .tab-bar::-webkit-scrollbar { display: none; }
+
+        .tab {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            background-color: transparent;
+            color: var(--secondary-text-color);
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            border: 1px solid transparent;
+            max-width: 200px;
+        }
+        .tab:hover {
+            background-color: var(--transparent-color);
+        }
+        .tab.active {
+            background-color: var(--background-color);
+            color: var(--text-color);
+            border-color: var(--glass-border);
+            box-shadow: var(--sun-shadow);
+        }
+        .tab-title {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .tab-close {
+            font-size: 14px !important;
+            padding: 2px;
+            border-radius: 4px;
+            opacity: 0;
+            transition: opacity 0.2s, background-color 0.2s;
+        }
+        .tab:hover .tab-close { opacity: 1; }
+        .tab-close:hover { background-color: rgba(255, 0, 0, 0.2); color: #ff5252; }
+
+        .new-tab-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-color);
+            cursor: pointer;
+            padding: 6px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .new-tab-btn:hover { background-color: var(--transparent-color); }
+
+        /* --- Toolbar --- */
+        .tools {
+            display: flex;
+            align-items: center;
+            padding: 0 10px 6px 10px;
+            gap: 16px;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 4px;
+        }
+        .icon-btn {
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--text-color);
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.1s;
+        }
+        .icon-btn .material-symbols-rounded {
+            font-size: 18px;
+        }
+        .icon-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+        .icon-btn.active {
+            background-color: var(--accent);
+            color: var(--background-color);
+        }
+
+        .path-breadcrumb {
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 13px;
+            overflow-x: auto;
+            scrollbar-width: none;
+            color: var(--secondary-text-color);
+        }
+        .path-crumb {
+            cursor: pointer;
+            padding: 2px 6px;
+            border-radius: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .path-crumb:hover {
+            background-color: var(--transparent-color);
+            color: var(--text-color);
+        }
+        .path-crumb.current {
+            color: var(--text-color);
+            cursor: default;
+            background: transparent;
+        }
+        .path-separator {
+            font-size: 14px;
+            opacity: 0.5;
+        }
+
+        .search-box {
+            display: flex;
+            align-items: center;
+            background-color: var(--search-background);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--sun-shadow);
+            border-radius: 50px;
+            padding: 0 8px;
+            width: 200px;
+        }
+        .search-box input {
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--text-color);
+            padding: 6px;
+            width: 100%;
+            font-size: 13px;
+        }
+
+        /* --- Main Layout --- */
+        .main-container {
+            display: flex;
+            flex-grow: 1;
+            overflow: hidden;
+        }
+
+        /* --- Sidebar --- */
+        .sidebar {
+            width: 200px;
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+            gap: 16px;
+            flex-shrink: 0;
+        }
+        .sidebar-section {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .sidebar-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--secondary-text-color);
+            padding: 0 8px;
+            margin-bottom: 4px;
+        }
+        .sidebar-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 6px 8px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 13px;
+            color: var(--text-color);
+        }
+        .sidebar-item:hover {
+            background-color: var(--dark-transparent);
+        }
+        .sidebar-item .material-symbols-rounded {
+            font-size: 18px;
+            color: var(--accent);
+        }
+
+        /* --- File View --- */
+        .file-view-container {
+            flex-grow: 1;
+            position: relative;
+            background-color: var(--search-background);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--sun-shadow);
+            overflow-y: auto;
+            outline: none;
+            border-radius: 25px;
+            corner-shape: superellipse(1.5);
+            margin: 0 5px 5px 0;
+        }
+
+        .empty-state {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--secondary-text-color);
+            gap: 12px;
+        }
+        .empty-state .material-symbols-rounded {
+            font-size: 48px;
+            opacity: 0.5;
+        }
+        .btn-primary {
+            background-color: var(--accent);
+            color: var(--background-color);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--sun-shadow);
+            padding: 8px 16px;
+            border-radius: 50px;
+            font-weight: 500;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        /* --- Grid View --- */
+        .view-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 16px;
+            padding: 20px;
+            align-content: start;
+        }
+        .view-grid .file-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            padding: 10px;
+            border-radius: 8px;
+            corner-shape: superellipse(1.5);
+            border: 1px solid transparent;
+            cursor: pointer;
+        }
+        .view-grid .file-item:hover {
+            background-color: var(--dark-transparent);
+        }
+        .view-grid .file-item.selected {
+            background-color: var(--search-background);
+            border-color: var(--accent);
+        }
+        .view-grid .file-icon {
+            font-size: 48px;
+            color: var(--accent);
+            margin-bottom: 8px;
+        }
+        .view-grid .file-name {
+            font-size: 12px;
+            word-break: break-word;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        /* --- List View --- */
+        .view-list {
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+        }
+        .view-list .list-header {
+            display: flex;
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--glass-border);
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--secondary-text-color);
+        }
+        .view-list .file-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--glass-border);
+            cursor: pointer;
+        }
+        .view-list .file-item:hover {
+            background-color: var(--dark-transparent);
+        }
+        .view-list .file-item.selected {
+            background-color: var(--search-background);
+        }
+        .view-list .col-name { flex-grow: 1; display: flex; align-items: center; gap: 12px; font-size: 13px; }
+        .view-list .col-kind { width: 150px; font-size: 12px; color: var(--secondary-text-color); }
+        .view-list .file-icon { font-size: 20px; color: var(--accent); }
+
+        /* --- Actions Bar (Floating) --- */
+        .actions-float {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background-color: var(--search-background);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            padding: 8px;
+            border-radius: 12px;
+            display: flex;
+            gap: 8px;
+            box-shadow: var(--sun-shadow), 0 10px 30px rgba(0,0,0,0.3);
+            transition: transform 0.3s cubic-bezier(0.2, 1.3, 0.64, 1);
+            opacity: 0;
+            pointer-events: none;
+            align-items: center;
+        }
+        .actions-float.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .actions-float select {
+            background: var(--background-color);
+            color: var(--text-color);
+            border: 1px solid var(--glass-border);
+            padding: 6px 10px;
+            border-radius: 6px;
+            outline: none;
+            font-size: 13px;
+        }
+        .context-menu {
+            position: fixed;
+            background: var(--search-background);
+            border: 1px solid var(--glass-border);
+            border-radius: 30px;
+            corner-shape: superellipse(1.5);
+            backdrop-filter: var(--edge-refraction-filter) saturate(2) blur(2.5px);
+            box-shadow: var(--sun-shadow), 0 0 50px rgba(0, 0, 0, 0.2);
+            padding: 6px;
+            min-width: 180px;
+            z-index: 3000;
+            display: none;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .menu-item-action {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            border-radius: 50px;
+            font-size: 13px;
+            color: var(--text-color);
+            cursor: pointer;
+            transition: background 0.1s;
+        }
+        .menu-item-action span:last-child {
+            flex-grow: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .menu-item-action:hover {
+            background-color: var(--accent);
+            color: var(--background-color);
+        }
+        .menu-item-action .material-symbols-rounded { font-size: 18px; }
+        .menu-separator { height: 1px; background: var(--glass-border); margin: 4px 6px; }
+        .ql-overlay {
+            position: fixed;
+            inset: 0;
+            background: var(--overlay-color);
+            z-index: 2000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+        }
+        .ql-content {
+            background: var(--search-background);
+            border: 1px solid var(--glass-border);
+            border-radius: 18px;
+            corner-shape: superellipse(1.5);
+            backdrop-filter: var(--edge-refraction-filter) saturate(2) blur(5px);
+            box-shadow: var(--sun-shadow), 0 0 50px rgba(0, 0, 0, 0.2);
+            max-width: 100%;
+            max-height: 100%;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            animation: ql-pop 0.2s cubic-bezier(0.2, 1.3, 0.64, 1);
+        }
+        @keyframes ql-pop { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        
+        .ql-preview { flex-grow: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; background: #000; }
+        .ql-preview img, .ql-preview video { max-width: 100%; max-height: 80vh; object-fit: contain; }
+        .ql-header { padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; background: var(--search-background); }
+        .ql-filename { font-weight: 600; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+    <!-- Tabs -->
+    <div class="tab-bar" id="tab-bar">
+        <!-- Tabs injected here -->
+        <button class="new-tab-btn" id="btn-new-tab" title="New Tab">
+            <span class="material-symbols-rounded" style="font-size: 18px;">add</span>
+        </button>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="tools">
+        <div class="nav-buttons">
+            <button class="icon-btn" id="btn-up" title="Up" disabled>
+                <span class="material-symbols-rounded">arrow_upward</span>
+            </button>
+        </div>
+
+        <div class="path-breadcrumb" id="breadcrumb">
+            <!-- Path injected here -->
+        </div>
+
+        <div class="nav-buttons">
+            <button class="icon-btn active" id="btn-view-grid" title="Grid View">
+                <span class="material-symbols-rounded">apps</span>
+            </button>
+            <button class="icon-btn" id="btn-view-list" title="List View">
+                <span class="material-symbols-rounded">list</span>
+            </button>
+        </div>
+
+        <div class="search-box">
+            <span class="material-symbols-rounded" style="font-size: 18px; opacity: 0.5;">search</span>
+            <input type="text" id="search-input" placeholder="Search">
+        </div>
+    </div>
+
+    <!-- Main Layout -->
+    <div class="main-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-section">
+                <div class="sidebar-title">Locations</div>
+                <div class="sidebar-item" id="btn-open-local">
+                    <span class="material-symbols-rounded">backup</span>
+                    Open folder
+                </div>
+            </div>
+        </div>
+
+        <!-- File View -->
+        <div class="file-view-container" id="file-view" tabindex="0">
+            <!-- Content injected here -->
+        </div>
+    </div>
+
+    <!-- Context Menu -->
+    <div id="context-menu" class="context-menu">
+        <!-- Actions dynamically injected here -->
+    </div>
+
+    <script>
+        // --- State Management ---
+        let tabs = [];
+        let activeTabId = null;
+        let availableActions = [];
+
+        async function toggleQuickLook() {
+            const tab = tabs.find(t => t.id === activeTabId);
+            if (!tab || tab.selectedFiles.size !== 1) return;
+
+            const handle = Array.from(tab.selectedFiles)[0];
+            if (handle.kind !== 'file') return;
+
+            let overlay = document.getElementById('ql-overlay');
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.id = 'ql-overlay';
+                overlay.className = 'ql-overlay';
+                overlay.onclick = closeQuickLook;
+                document.body.appendChild(overlay);
+            }
+
+            const file = await handle.getFile();
+            const url = URL.createObjectURL(file);
+            let previewHtml = '';
+
+            if (file.type.startsWith('image/')) {
+                previewHtml = `<img src="${url}">`;
+            } else if (file.type.startsWith('video/')) {
+                previewHtml = `<video src="${url}" controls autoplay loop></video>`;
+            } else if (file.type.startsWith('text/') || file.name.endsWith('.json') || file.name.endsWith('.js')) {
+                const text = await file.text();
+                previewHtml = `<pre style="color:white; padding:20px; overflow:auto; max-width:80vw; max-height:70vh;">${text.substring(0, 10000)}</pre>`;
+            } else {
+                previewHtml = `<div style="padding:100px; text-align:center;"><span class="material-symbols-rounded" style="font-size:80px; color:var(--accent);">draft</span></div>`;
+            }
+
+            overlay.innerHTML = `
+                <div class="ql-content" onclick="event.stopPropagation()">
+                    <div class="ql-header">
+                        <span class="ql-filename">${file.name}</span>
+                        <span class="material-symbols-rounded" style="cursor:pointer" onclick="closeQuickLook()">close</span>
+                    </div>
+                    <div class="ql-preview">${previewHtml}</div>
+                </div>
+            `;
+            overlay.style.display = 'flex';
+        }
+
+        function closeQuickLook() {
+            const overlay = document.getElementById('ql-overlay');
+            if (overlay) {
+                const media = overlay.querySelector('video, img');
+                if (media && media.src.startsWith('blob:')) URL.revokeObjectURL(media.src);
+                overlay.style.display = 'none';
+                overlay.innerHTML = '';
+            }
+        }
+
+        // --- Thumbnail Logic ---
+        const thumbCache = new Map();
+        async function getThumbnail(fileHandle) {
+            if (thumbCache.has(fileHandle.name)) return thumbCache.get(fileHandle.name);
+            if (!fileHandle.name.match(/\.(jpg|jpeg|png|webp|gif|mp4)$/i)) return null;
+
+            try {
+                const file = await fileHandle.getFile();
+                let url;
+                if (file.type.startsWith('video/')) {
+                    // Video frame extraction logic (simplified)
+                    return null; 
+                } else {
+                    url = URL.createObjectURL(file);
+                }
+                thumbCache.set(fileHandle.name, url);
+                return url;
+            } catch(e) { return null; }
+        }
+
+        // DOM Elements
+        const elTabBar = document.getElementById('tab-bar');
+        const elBtnNewTab = document.getElementById('btn-new-tab');
+        const elBreadcrumb = document.getElementById('breadcrumb');
+        const elFileView = document.getElementById('file-view');
+        const elBtnUp = document.getElementById('btn-up');
+        const elBtnGrid = document.getElementById('btn-view-grid');
+        const elBtnList = document.getElementById('btn-view-list');
+        const elSearchInput = document.getElementById('search-input');
+        const elBtnOpenLocal = document.getElementById('btn-open-local');
+        
+        const elContextMenu = document.getElementById('context-menu');
+
+        // Close menu on click elsewhere
+        document.addEventListener('click', () => elContextMenu.style.display = 'none');
+
+        function showContextMenu(e, entry) {
+            e.preventDefault();
+            const tab = tabs.find(t => t.id === activeTabId);
+            
+            // If right-clicked a non-selected item, select only it
+            if (!tab.selectedFiles.has(entry)) {
+                tab.selectedFiles.clear();
+                tab.selectedFiles.add(entry);
+                renderSelection();
+            }
+
+            elContextMenu.innerHTML = '';
+
+            // 1. Common Actions
+            const commonActions = [
+                { id: 'open', label: 'Open', icon: 'open_in_new', run: () => openEntry(entry) },
+                { id: 'quicklook', label: 'Quick Look', icon: 'visibility', run: () => toggleQuickLook() }
+            ];
+
+            commonActions.forEach(act => {
+                const item = document.createElement('div');
+                item.className = 'menu-item-action';
+                item.innerHTML = `<span class="material-symbols-rounded">${act.icon}</span><span>${act.label}</span>`;
+                item.onclick = act.run;
+                elContextMenu.appendChild(item);
+            });
+
+            // 2. Separator
+            if (availableActions.length > 0) {
+                const sep = document.createElement('div');
+                sep.className = 'menu-separator';
+                elContextMenu.appendChild(sep);
+            }
+
+            // 3. Dynamic Desktop Actions 
+            availableActions.forEach(action => {
+                const item = document.createElement('div');
+                item.className = 'menu-item-action';
+                
+                // Set icon
+                const icon = action.icon || 'bolt';
+                item.innerHTML = `<span class="material-symbols-rounded">${icon}</span><span>${action.label}</span>`;
+                
+                item.onclick = async () => {
+                    elContextMenu.style.display = 'none'; // Hide menu immediately
+                    
+                    const filesToRun = [];
+                    // Show a small loading state in the popup if possible
+                    Gurasuraisu.showPopup(`Preparing ${tab.selectedFiles.size} files...`);
+
+                    try {
+                        for (const handle of tab.selectedFiles) {
+                            if (handle.kind === 'file') {
+                                const actualFile = await handle.getFile();
+                                filesToRun.push(actualFile);
+                            }
+                        }
+
+                        if (filesToRun.length > 0 && window.ActionsAPI) {
+                            // Dispatch to System Script Runner
+                            window.ActionsAPI.run(action.id, filesToRun);
+                        } else {
+                            Gurasuraisu.showPopup("No valid files for this action.");
+                        }
+                    } catch (err) {
+                        console.error("Action Preparation Error:", err);
+                        Gurasuraisu.showPopup("Failed to read files for action.");
+                    }
+                };
+                elContextMenu.appendChild(item);
+            });
+
+            // Position and show
+            elContextMenu.style.display = 'flex';
+            elContextMenu.style.left = e.clientX + 'px';
+            elContextMenu.style.top = e.clientY + 'px';
+            
+            // Adjust if off-screen
+            const rect = elContextMenu.getBoundingClientRect();
+            if (rect.right > window.innerWidth) elContextMenu.style.left = (e.clientX - rect.width) + 'px';
+            if (rect.bottom > window.innerHeight) elContextMenu.style.top = (e.clientY - rect.height) + 'px';
+        }
+
+        // --- Initialization ---
+        window.addEventListener('GurasuraisuReady', async () => {
+            if (window.ActionsAPI) {
+                try {
+                    availableActions = await window.ActionsAPI.list();
+                    populateActions();
+                } catch(e) { console.error("Failed to load Actions", e); }
+            }
+            createNewTab();
+        });
+
+        // --- Tab Logic ---
+        function createNewTab(dirHandle = null) {
+            const tabId = 'tab_' + Date.now() + Math.random();
+            const newTab = {
+                id: tabId,
+                title: dirHandle ? dirHandle.name : 'Home',
+                path: dirHandle ? [dirHandle] : [], // Array of handles [root, child, subchild]
+                files: [],
+                selectedFiles: new Set(),
+                viewMode: 'grid',
+                searchQuery: ''
+            };
+            tabs.push(newTab);
+            switchTab(tabId);
+            
+            if (dirHandle) {
+                loadDirectory(tabId);
+            }
+        }
+
+        function switchTab(tabId) {
+            activeTabId = tabId;
+            renderTabs();
+            renderToolbar();
+            renderFiles();
+        }
+
+        function closeTab(tabId, e) {
+            e.stopPropagation();
+            tabs = tabs.filter(t => t.id !== tabId);
+            if (tabs.length === 0) {
+                createNewTab();
+            } else if (activeTabId === tabId) {
+                switchTab(tabs[tabs.length - 1].id);
+            } else {
+                renderTabs();
+            }
+        }
+
+        function renderTabs() {
+            // Remove existing tabs
+            Array.from(elTabBar.children).forEach(child => {
+                if (child.id !== 'btn-new-tab') child.remove();
+            });
+
+            tabs.forEach(tab => {
+                const t = document.createElement('div');
+                t.className = `tab ${tab.id === activeTabId ? 'active' : ''}`;
+                
+                const icon = document.createElement('span');
+                icon.className = 'material-symbols-rounded';
+                icon.style.fontSize = '16px';
+                icon.textContent = tab.path.length === 0 ? 'home' : 'folder';
+
+                const title = document.createElement('span');
+                title.className = 'tab-title';
+                title.textContent = tab.title;
+
+                const close = document.createElement('span');
+                close.className = 'material-symbols-rounded tab-close';
+                close.textContent = 'close';
+                close.onclick = (e) => closeTab(tab.id, e);
+
+                t.appendChild(icon);
+                t.appendChild(title);
+                t.appendChild(close);
+                t.onclick = () => switchTab(tab.id);
+
+                elTabBar.insertBefore(t, elBtnNewTab);
+            });
+        }
+
+        elBtnNewTab.onclick = () => createNewTab();
+
+        // --- File System Logic ---
+        async function promptOpenFolder() {
+            try {
+                const handle = await window.showDirectoryPicker({ mode: 'readwrite' });
+                const tab = tabs.find(t => t.id === activeTabId);
+                if (tab) {
+                    tab.title = handle.name;
+                    tab.path = [handle];
+                    await loadDirectory(tab.id);
+                    renderTabs();
+                }
+            } catch (e) {
+                // AbortError is normal if user cancels
+            }
+        }
+
+        elBtnOpenLocal.onclick = promptOpenFolder;
+
+        async function loadDirectory(tabId) {
+            const tab = tabs.find(t => t.id === tabId);
+            if (!tab || tab.path.length === 0) return;
+
+            const currentHandle = tab.path[tab.path.length - 1];
+            tab.files = [];
+            tab.selectedFiles.clear();
+
+            try {
+                for await (const entry of currentHandle.values()) {
+                    tab.files.push(entry);
+                }
+                
+                // Sort: Folders first, then Alpha
+                tab.files.sort((a, b) => {
+                    if (a.kind === b.kind) return a.name.localeCompare(b.name);
+                    return a.kind === 'directory' ? -1 : 1;
+                });
+                
+                if (activeTabId === tabId) {
+                    renderToolbar();
+                    renderFiles();
+                }
+            } catch (e) {
+                console.error(e);
+                if (window.Gurasuraisu) Gurasuraisu.showAlert("Failed to read directory.");
+            }
+        }
+
+        async function openEntry(entry) {
+            if (entry.kind === 'directory') {
+                const tab = tabs.find(t => t.id === activeTabId);
+                tab.path.push(entry);
+                tab.title = entry.name;
+                renderTabs();
+                await loadDirectory(tab.id);
+            } else {
+                // placeholder
+            }
+        }
+
+        function navigateUp() {
+            const tab = tabs.find(t => t.id === activeTabId);
+            if (tab && tab.path.length > 1) {
+                tab.path.pop();
+                tab.title = tab.path[tab.path.length - 1].name;
+                renderTabs();
+                loadDirectory(tab.id);
+            }
+        }
+        
+        function navigateToCrumb(index) {
+            const tab = tabs.find(t => t.id === activeTabId);
+            if (tab && index < tab.path.length - 1) {
+                tab.path = tab.path.slice(0, index + 1);
+                tab.title = tab.path[tab.path.length - 1].name;
+                renderTabs();
+                loadDirectory(tab.id);
+            }
+        }
+
+        elBtnUp.onclick = navigateUp;
+
+        // --- Toolbar & Views ---
+        elBtnGrid.onclick = () => setViewMode('grid');
+        elBtnList.onclick = () => setViewMode('list');
+
+        function setViewMode(mode) {
+            const tab = tabs.find(t => t.id === activeTabId);
+            if (tab) {
+                tab.viewMode = mode;
+                elBtnGrid.classList.toggle('active', mode === 'grid');
+                elBtnList.classList.toggle('active', mode === 'list');
+                renderFiles();
+            }
+        }
+
+        elSearchInput.oninput = (e) => {
+            const tab = tabs.find(t => t.id === activeTabId);
+            if (tab) {
+                tab.searchQuery = e.target.value.toLowerCase();
+                renderFiles();
+            }
+        };
+
+        function renderToolbar() {
+            const tab = tabs.find(t => t.id === activeTabId);
+            if (!tab) return;
+
+            elSearchInput.value = tab.searchQuery;
+            elBtnUp.disabled = tab.path.length <= 1;
+            
+            elBtnGrid.classList.toggle('active', tab.viewMode === 'grid');
+            elBtnList.classList.toggle('active', tab.viewMode === 'list');
+
+            // Render Breadcrumbs
+            elBreadcrumb.innerHTML = '';
+            if (tab.path.length === 0) {
+                elBreadcrumb.innerHTML = '<span class="path-crumb current">Home</span>';
+            } else {
+                tab.path.forEach((handle, index) => {
+                    const crumb = document.createElement('span');
+                    crumb.className = `path-crumb ${index === tab.path.length - 1 ? 'current' : ''}`;
+                    crumb.textContent = handle.name;
+                    if (index < tab.path.length - 1) {
+                        crumb.onclick = () => navigateToCrumb(index);
+                    }
+                    elBreadcrumb.appendChild(crumb);
+
+                    if (index < tab.path.length - 1) {
+                        const sep = document.createElement('span');
+                        sep.className = 'material-symbols-rounded path-separator';
+                        sep.textContent = 'chevron_right';
+                        elBreadcrumb.appendChild(sep);
+                    }
+                });
+            }
+        }
+
+        // --- Rendering Files ---
+        function getIconForFile(name, kind) {
+            if (kind === 'directory') return 'folder';
+            if (name.match(/\.(jpg|jpeg|png|gif|webp)$/i)) return 'image';
+            if (name.match(/\.(mp4|webm|mov)$/i)) return 'movie';
+            if (name.match(/\.(mp3|wav|ogg)$/i)) return 'audio_file';
+            if (name.match(/\.(txt|md|json|js|html|css)$/i)) return 'description';
+            return 'draft';
+        }
+
+        function renderFiles() {
+            const tab = tabs.find(t => t.id === activeTabId);
+            if (!tab) return;
+
+            if (tab.path.length === 0) {
+                elFileView.innerHTML = `
+                    <div class="empty-state">
+                        <span class="material-symbols-rounded" style="color: var(--accent); opacity: 1;">backup</span>
+                        <h3>Files</h3>
+                        <p style="margin-bottom: 16px;">Open a local folder to start</p>
+                        <button class="btn-primary" onclick="promptOpenFolder()">Open folder</button>
+                    </div>
+                `;
+                return;
+            }
+
+            let displayFiles = tab.files;
+            if (tab.searchQuery) {
+                displayFiles = displayFiles.filter(f => f.name.toLowerCase().includes(tab.searchQuery));
+            }
+
+            if (displayFiles.length === 0) {
+                elFileView.innerHTML = `
+                    <div class="empty-state">
+                        <span class="material-symbols-rounded">folder_open</span>
+                        <h3>Empty</h3>
+                    </div>
+                `;
+                return;
+            }
+
+            const container = document.createElement('div');
+            container.className = `view-${tab.viewMode}`;
+
+            if (tab.viewMode === 'list') {
+                const header = document.createElement('div');
+                header.className = 'list-header';
+                header.innerHTML = `<div class="col-name">Name</div><div class="col-kind">Kind</div>`;
+                container.appendChild(header);
+            }
+
+            displayFiles.forEach(entry => {
+                const item = document.createElement('div');
+                item.className = `file-item ${tab.selectedFiles.has(entry) ? 'selected' : ''}`;
+                
+                const iconStr = getIconForFile(entry.name, entry.kind);
+
+                if (tab.viewMode === 'grid') {
+                    item.innerHTML = `
+                        <div class="file-icon-container">
+                            <span class="material-symbols-rounded file-icon">${iconStr}</span>
+                        </div>
+                        <span class="file-name">${entry.name}</span>
+                    `;
+                    
+                    // Async load thumbnail
+                    getThumbnail(entry).then(url => {
+                        if (url) {
+                            const iconCont = item.querySelector('.file-icon-container');
+                            iconCont.innerHTML = `<img src="${url}" style="width:100%; height:100%; aspect-ratio: 1 / 1; object-fit:cover; border-radius:6px; corner-shape: superellipse(1.5);">`;
+                        }
+                    });
+                } else {
+                    item.innerHTML = `
+                        <div class="col-name">
+                            <span class="material-symbols-rounded file-icon" style="font-size:18px">${iconStr}</span>
+                            <span>${entry.name}</span>
+                        </div>
+                        <div class="col-kind">${entry.kind === 'directory' ? 'Folder' : 'File'}</div>
+                    `;
+                }
+
+                // Selection Logic
+                item.onclick = (e) => {
+                    e.stopPropagation();
+                    if (e.metaKey || e.ctrlKey) {
+                        if (tab.selectedFiles.has(entry)) tab.selectedFiles.delete(entry);
+                        else tab.selectedFiles.add(entry);
+                    } else if (e.shiftKey && tab.lastSelected) {
+                        // Basic range select
+                        const startIdx = displayFiles.indexOf(tab.lastSelected);
+                        const endIdx = displayFiles.indexOf(entry);
+                        const min = Math.min(startIdx, endIdx);
+                        const max = Math.max(startIdx, endIdx);
+                        tab.selectedFiles.clear();
+                        for(let i=min; i<=max; i++) tab.selectedFiles.add(displayFiles[i]);
+                    } else {
+                        tab.selectedFiles.clear();
+                        tab.selectedFiles.add(entry);
+                        tab.lastSelected = entry;
+                    }
+                    renderSelection();
+                };
+
+                // Double Click to open
+                item.ondblclick = (e) => {
+                    e.stopPropagation();
+                    openEntry(entry);
+                };
+
+                // Right Click to trigger menu
+                item.oncontextmenu = (e) => {
+                    showContextMenu(e, entry);
+                };
+
+                entry._dom = item;
+                container.appendChild(item);
+            });
+
+            elFileView.innerHTML = '';
+            elFileView.appendChild(container);
+        }
+
+        // Click empty space to deselect
+        elFileView.addEventListener('click', () => {
+            const tab = tabs.find(t => t.id === activeTabId);
+            if (tab && tab.selectedFiles.size > 0) {
+                tab.selectedFiles.clear();
+                renderSelection();
+                updateActionsUI();
+            }
+        });
+
+        function renderSelection() {
+            const tab = tabs.find(t => t.id === activeTabId);
+            if (!tab) return;
+            tab.files.forEach(f => {
+                if (f._dom) {
+                    if (tab.selectedFiles.has(f)) f._dom.classList.add('selected');
+                    else f._dom.classList.remove('selected');
+                }
+            });
+        }
+
+        // Keyboard support
+        window.addEventListener('keydown', (e) => {
+            const tab = tabs.find(t => t.id === activeTabId);
+            if (!tab) return;
+
+            if (e.code === 'Space') {
+                e.preventDefault();
+                toggleQuickLook();
+            }
+
+            if (e.key === 'Enter' && tab.selectedFiles.size === 1) {
+                openEntry(Array.from(tab.selectedFiles)[0]);
+            }
+
+            // Cmd/Ctrl + A to Select All
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') {
+                if (document.activeElement.tagName !== 'INPUT') {
+                    e.preventDefault();
+                    tab.files.forEach(f => tab.selectedFiles.add(f));
+                    renderSelection();
+                    updateActionsUI();
+                }
+            }
+        });
+
+    </script>
+</body>
+</html>
