@@ -1,4 +1,4 @@
-const CORE_CACHE_VERSION = 'Desktop 0.1 Bismuth';
+const CORE_CACHE_VERSION = 'Desktop 1.1 Bismuth';
 const CORE_CACHE_NAME = `polygoldesktop-core-${CORE_CACHE_VERSION}`;
 const APPS_CACHE_NAME = 'polygoldesktop-apps';
 
@@ -269,13 +269,13 @@ self.addEventListener('fetch', event => {
   
     // Ensure API requests for live data never serve stale cached versions
     const apiHosts = [
-        '/desktop/polygol.github.io/kirbstore/inventories',
-        '/desktop/kirbstore/inventories',
-        '/desktop/raw.githubusercontent.com/kirbIndustries/assets/refs/heads/main/kirbindustries-ads-service/octagon/small.json',
-        '/desktop/kirbindust.goatcounter.com',
-        '/desktop/api.open-meteo.com',
-        '/desktop/dummyjson.com',
-        '/desktop/api.rss2json.com'
+        'polygol.github.io/kirbstore/inventories',
+        'kirbstore/inventories',
+        'raw.githubusercontent.com/kirbIndustries/assets/refs/heads/main/kirbindustries-ads-service/octagon/small.json',
+        'kirbindust.goatcounter.com',
+        'api.open-meteo.com',
+        'dummyjson.com',
+        'api.rss2json.com'
     ];
 
     if (apiHosts.includes(url.hostname)) {

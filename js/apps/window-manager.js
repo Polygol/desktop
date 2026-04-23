@@ -4,7 +4,7 @@ window.minimizeTimeouts = {};
 // App definitions
 var apps = {
     "kirbStore": {
-        url: "kirbstore/index.html",
+        url: "/kirbstore/index.html",
         icon: "appstore.png"
 	},
     "Files": {
@@ -222,7 +222,7 @@ async function deleteApp(appName) {
     const appToDelete = apps[appName];
     if (
         appToDelete && 
-        (appToDelete.url.includes('kirbstore/index.html') ||
+        (appToDelete.url.includes('/kirbstore/index.html') ||
          appToDelete.url.includes('/desktop/assets/gurapp/intl/settings/'))
     ) {
         showDialog({ 
