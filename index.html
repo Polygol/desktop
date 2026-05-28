@@ -4,18 +4,18 @@
     <script>
         (function () {
           const onKeyDown = (e) => {
-            if (e.code === 'F12' && !window.location.pathname.includes('/recovery/')) {
+            if (e.code === 'F12' && !window.location.pathname.includes('./recovery/')) {
               console.log('F12 detected. Redirecting to Safe Mode...');
               window.onbeforeunload = null;
-              window.location.href = '/recovery/index.html';
+              window.location.href = './recovery/index.html';
             }
           };
         
           const onBootHelpClick = (e) => {
-            if (!window.location.pathname.includes('/recovery/')) {
+            if (!window.location.pathname.includes('./recovery/')) {
               console.log('.boot-help clicked. Redirecting to Safe Mode...');
               window.onbeforeunload = null;
-              window.location.href = '/recovery/index.html';
+              window.location.href = './recovery/index.html';
             }
           };
         
@@ -45,7 +45,7 @@
     <meta name="twitter:description" content="Polygol Desktop extends your host OS with windows, Actions, and desktop-first workflows.">
     <meta name="twitter:image" content="https://polygol.github.io/assets/marketing/hero2.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <link rel="manifest" href="/manifest.json">
+    <link rel="manifest" href="./manifest.json">
     <script src="js/lang.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -116,7 +116,7 @@
         let FF_FOUC_FIX;
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js')
+                navigator.serviceWorker.register('./sw.js')
                     .then(registration => {
                         console.log('ServiceWorker registered:', registration);
                     })
@@ -169,7 +169,7 @@
                     </h2>
                     <pre style="color: #ff8a80; background: #222; padding: 10px; border-radius: 18px;">${errorMessage}</pre>
                     <p style="color: var(--text-color); font-family: 'Inter', sans-serif; margin-top: 20px;">
-                        Open Recovery Mode at <a href="/recovery/" style="color: #82b1ff;">https://polygol.github.io/recovery/</a><br>
+                        Open Recovery Mode at <a href="./recovery/" style="color: #82b1ff;">https://polygol.github.io/recovery/</a><br>
                         Report this to our GitHub. <a href="https://github.com/Polygol/polygol.github.io/issues" style="color: #82b1ff;">https://github.com/Polygol/polygol.github.io/issues</a>
                     </p>
                 `;
@@ -248,7 +248,7 @@
     <div id="top-menu-bar">
         <div class="menu-left">
             <div class="menu-item logo-menu">
-                <svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><circle cx="6.25" cy="7.5" r="2" fill="currentColor"/><circle cx="13.75" cy="7.5" r="2" fill="currentColor"/><path d="M3.75 12.5q6.25 5 12.5 0" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><circle cx="6.25" cy="7.5" r="2" fill="currentColor"./><circle cx="13.75" cy="7.5" r="2" fill="currentColor"./><path d="M3.75 12.5q6.25 5 12.5 0" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"./></svg>
             </div>
             <div id="current-app-menu-label" class="menu-item">Desktop</div>
             <div id="dynamic-app-menus" style="display:flex; height:100%; align-items: center;"></div>
@@ -589,7 +589,7 @@
 
             <div id="kirbindustries-ads-service" style="background-color: var(--search-background);box-shadow: var(--sun-shadow);color: var(--text-color);padding: 10px 14px 10px 12px;border-radius: 35px;corner-shape: superellipse(1.5);z-index: 9999996;transition: opacity 0.5s;display: none;align-items: center;gap: 12px;border: 1px solid var(--glass-border);">
                 <div id="kirbindustries-ads-service-img" class="app-icon-img" style="width: 42px;">
-                    <img src="/desktop/assets/appicon/default.png" class="media-widget-app-icon" style="display: block;">
+                    <img src="./desktop/assets/appicon/default.png" class="media-widget-app-icon" style="display: block;">
                 </div>
                 <div style="display: flex;flex-direction: column;gap: 4px;">
                     <div style="display: flex;align-items: center;gap: 6px;">

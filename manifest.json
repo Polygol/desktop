@@ -9,8 +9,8 @@
     "business",
     "personalization"
   ],
-  "scope": "/desktop",
-  "start_url": "/desktop/index.html?fullscreen=true",
+  "scope": "./desktop",
+  "start_url": "./desktop/index.html?fullscreen=true",
   "id": "",
   "display": "fullscreen",
   "display_override": ["window-controls-overlay"],

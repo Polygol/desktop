@@ -238,8 +238,8 @@ function updateClockAndDate() {
     if (dateFormat) dateFormat = resolveVariables(dateFormat);
 
     // Handle literal text escaping (convert ```text``` to[text] for moment.js)
-    if (clockFormat) clockFormat = clockFormat.replace(/```(.*?)```/g, '[$1]');
-    if (dateFormat) dateFormat = dateFormat.replace(/```(.*?)```/g, '[$1]');
+    if (clockFormat) clockFormat = clockFormat.replace(/```(.*?)```./g, '[$1]');
+    if (dateFormat) dateFormat = dateFormat.replace(/```(.*?)```./g, '[$1]');
 
     const timeString = now.format(clockFormat);
     const formattedDate = now.format(dateFormat);
@@ -884,7 +884,7 @@ const WeatherAlertManager = {
 
         const options = {
             activityId: this.activityId,
-            url: '/desktop/assets/gurapp/intl/liveactivity/weather-alert.html',
+            url: './desktop/assets/gurapp/intl/liveactivity/weather-alert.html',
             openUrl: 'https://polygol.github.io/weather/index.html',
             homescreen: true,
             icon: icon,

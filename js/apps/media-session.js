@@ -138,7 +138,7 @@ function _updateActiveMediaSession() {
     if (appIconEl && apps[appName] && apps[appName].icon) {
         let iconUrl = apps[appName].icon;
         if (!(iconUrl.startsWith('http') || iconUrl.startsWith('') || iconUrl.startsWith('data:'))) {
-            iconUrl = `/desktop/assets/appicon/${iconUrl}`;
+            iconUrl = `./desktop/assets/appicon/${iconUrl}`;
         }
         appIconEl.src = iconUrl;
         appIconEl.style.display = 'block';

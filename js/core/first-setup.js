@@ -39,10 +39,10 @@ async function firstSetup() {
         
         // Register Airy temporarily if it's not in the main apps list yet
         if (typeof apps === 'undefined') window.apps = {};
-        apps['Airy'] = { url: '/desktop/assets/gurapp/intl/airy/index.html', icon: 'airy.png' };
+        apps['Airy'] = { url: './desktop/assets/gurapp/intl/airy/index.html', icon: 'airy.png' };
 
         // Launch Airy as the setup environment
-        createWindowEmbed('/desktop/assets/gurapp/intl/airy/index.html');
+        createWindowEmbed('./desktop/assets/gurapp/intl/airy/index.html');
 
         // Listen for completion
         const onOnboardingComplete = (event) => {

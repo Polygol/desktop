@@ -253,7 +253,7 @@ const SlideshowManager = {
         // Show Control Widget
         startLiveActivity('System', {
             activityId: 'sys-slideshow',
-            url: '/desktop/assets/gurapp/intl/liveactivity/slideshow-control.html',
+            url: './desktop/assets/gurapp/intl/liveactivity/slideshow-control.html',
             homescreen: false,
 			showInIsland: false,
             height: '40px'

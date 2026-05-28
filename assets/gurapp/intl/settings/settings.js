@@ -315,7 +315,7 @@ function initializeSettingsApp() {
             const appDef = systemAppsObj[appName] || installedAppsObj[appName] || {};
             let iconSrc = appDef.icon || 'system.png';
             if (!iconSrc.startsWith('http') && !iconSrc.startsWith('') && !iconSrc.startsWith('data:')) {
-                iconSrc = `/desktop/assets/appicon/${iconSrc}`;
+                iconSrc = `./desktop/assets/appicon/${iconSrc}`;
             }
 
             const item = document.createElement('div');
@@ -365,11 +365,11 @@ function initializeSettingsApp() {
         const iconEl = document.getElementById('detail-app-icon');
         if (appDef.type === 'component') {
             // Setup generic icon for components
-            iconEl.src = '/desktop/assets/appicon/system.png';
+            iconEl.src = './desktop/assets/appicon/system.png';
         } else {
             let iconSrc = appDef.icon || 'system.png';
             if (!iconSrc.startsWith('http') && !iconSrc.startsWith('') && !iconSrc.startsWith('data:')) {
-                iconSrc = `/desktop/assets/appicon/${iconSrc}`;
+                iconSrc = `./desktop/assets/appicon/${iconSrc}`;
             }
             iconEl.src = iconSrc;
         }

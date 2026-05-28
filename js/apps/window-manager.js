@@ -4,11 +4,11 @@ window.minimizeTimeouts = {};
 // App definitions
 var apps = {
     "kirbStore": {
-        url: "/kirbstore/index.html",
+        url: "./kirbstore/index.html",
         icon: "appstore.png"
 	},
     "Files": {
-        url: "/desktop/assets/gurapp/intl/forudaraisu/index.html",
+        url: "./desktop/assets/gurapp/intl/forudaraisu/index.html",
         icon: "files.png"
 	},
     "Feedback": {
@@ -16,7 +16,7 @@ var apps = {
         icon: "feedback.png"
 	},
     "Settings": {
-        url: "/desktop/assets/gurapp/intl/settings/index.html",
+        url: "./desktop/assets/gurapp/intl/settings/index.html",
         icon: "settings.png"
 	}
 };
@@ -222,8 +222,8 @@ async function deleteApp(appName) {
     const appToDelete = apps[appName];
     if (
         appToDelete && 
-        (appToDelete.url.includes('/kirbstore/index.html') ||
-         appToDelete.url.includes('/desktop/assets/gurapp/intl/settings/'))
+        (appToDelete.url.includes('./kirbstore/index.html') ||
+         appToDelete.url.includes('./desktop/assets/gurapp/intl/settings/'))
     ) {
         showDialog({ 
             type: 'alert', 
@@ -497,7 +497,7 @@ async function createWindowEmbed(url, options = {}) {
         return showDialog({ type: "alert", title: currentLanguage.GURAPP_NOT_INSTALLED, message: url, icon: "cancel" });
     }
 
-    let appDetails = appName ? apps[appName] : { name: "System Tool", icon: "/desktop/assets/appicon/system.png", url };
+    let appDetails = appName ? apps[appName] : { name: "System Tool", icon: "./desktop/assets/appicon/system.png", url };
     appName = appName || "System Tool";
 
     // Track usage
@@ -1078,7 +1078,7 @@ function updateControlStripApps() {
         // Icon Logic
         let iconUrl = appDetails?.icon || 'system.png';
         if (!iconUrl.startsWith('http') && !iconUrl.startsWith('data:')) {
-            iconUrl = `/desktop/assets/appicon/${iconUrl}`;
+            iconUrl = `./desktop/assets/appicon/${iconUrl}`;
         }
 
         const img = document.createElement('img');

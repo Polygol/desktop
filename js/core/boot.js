@@ -125,7 +125,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     initDesktopMenuBar();
 
     if (window.DesktopActionsRegistry) {
-        const path = '/desktop/assets/actions/';
+        const path = './desktop/assets/actions/';
         DesktopActionsRegistry.register('System', { 
             id: 'sys-convert', label: 'Convert files', icon: 'transform', script: path + 'convert.js' 
         });
@@ -986,9 +986,9 @@ function initDesktopMenuBar() {
     };
 
     const getAppIconPath = (iconName) => {
-        if (!iconName) return '/desktop/assets/appicon/default.png';
-        if (iconName.startsWith('http') || iconName.startsWith('/') || iconName.startsWith('data:')) return iconName;
-        return `/desktop/assets/appicon/${iconName}`;
+        if (!iconName) return './desktop/assets/appicon/default.png';
+        if (iconName.startsWith('http') || iconName.startsWith('./') || iconName.startsWith('data:')) return iconName;
+        return `./desktop/assets/appicon/${iconName}`;
     };
 
     const renderLogoMenu = () => {
@@ -1626,7 +1626,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const span = currentAppLabel.querySelector('span');
                     let iconUrl = appDetails.icon;
                     if (iconUrl && !(iconUrl.startsWith('http') || iconUrl.startsWith('') || iconUrl.startsWith('data:'))) {
-                        iconUrl = `/desktop/assets/appicon/${iconUrl}`;
+                        iconUrl = `./desktop/assets/appicon/${iconUrl}`;
                     }
                     if (img) {
                         img.src = iconUrl || '';

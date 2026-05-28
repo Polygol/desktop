@@ -100,9 +100,9 @@ function safeMathEval(str) {
 }
 
 function getSpotlightIcon(iconStr) {
-    if (!iconStr) return '/desktop/assets/appicon/default.png';
+    if (!iconStr) return './desktop/assets/appicon/default.png';
     if (iconStr.startsWith('http') || iconStr.startsWith('data:')) return iconStr;
-    return `/desktop/assets/appicon/${iconStr}`;
+    return `./desktop/assets/appicon/${iconStr}`;
 }
 
 function executeActionFromSpotlight(actionId, appName) {

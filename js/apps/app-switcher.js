@@ -156,7 +156,7 @@ function renderAppCards(container) {
         if (iconSrc && (iconSrc.startsWith('http') || iconSrc.startsWith('') || iconSrc.startsWith('data:'))) {
             // Use as is
         } else {
-            iconSrc = `/desktop/assets/appicon/${iconSrc}`;
+            iconSrc = `./desktop/assets/appicon/${iconSrc}`;
         }
         
         const card = document.createElement('div');
@@ -348,7 +348,7 @@ function openAppSwitcher() {
                 if (iconSrc.startsWith('http') || iconSrc.startsWith('') || iconSrc.startsWith('data:')) {
                     finalSrc = iconSrc;
                 } else {
-                    finalSrc = `/desktop/assets/appicon/${iconSrc}`;
+                    finalSrc = `./desktop/assets/appicon/${iconSrc}`;
                 }
             }
             
